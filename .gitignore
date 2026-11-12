@@ -1,0 +1,39 @@
+# Build output
+bin/
+obj/
+dist/
+*.dll
+*.pdb
+
+# IDE / editor / tooling
+.vs/
+.idea/
+.claude/
+CLAUDE.md
+/AGENTS.md
+/CODEX-HANDOFF.md
+*.user
+*.suo
+*.userprefs
+
+# ---------------------------------------------------------------------------
+# Local working material — must NOT be published.
+#
+# Decompiled game code is Shockfront's, not ours. Publishing it is what gets a
+# mod repository taken down.
+# ---------------------------------------------------------------------------
+Assembly-CSharp.dll/
+
+# Other people's mods, kept locally as reference
+MKModsNO-main/
+NuclearMods-main/
+YawOnMouse-main/
+
+# Reference footage and working captures — not ours to redistribute
+.multimedia/
+
+# Game logs, personal scratch
+.logs/
+*.log
+log.txt
+*.ahk
