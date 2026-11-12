@@ -1,7 +1,5 @@
 # Ace Option
 
-[GitHub repository](https://github.com/Thabuki/NO-AceOption)
-
 A quality-of-life mod for Nuclear Option with improved camera controls, a
 customizable HUD, and an Ace Combat-inspired flying experience. Requires
 **BepInEx 5**. Configure the mod through **BepInEx Configuration Manager** or
@@ -17,13 +15,13 @@ upgrade.
 
 ### Free Look
 
-| Setting | Default | Behavior |
-| --- | --- | --- |
-| Enable Free Look | On | Look around in chase with the existing Pan View and Tilt View controls. Center resets the view immediately. |
-| Look Sensitivity | 1 | Scale the game's view sensitivity. |
-| Look Deadzone | 0.15 | Ignore small look inputs, with a range of 0 to 1. |
-| Auto-Center Delay (seconds) | 0.15 | Wait 0 to 30 seconds after look input stops before returning to center. |
-| Auto-Center Speed | 5 | Adjust the automatic return speed from 0.1 to 20 while respecting the game's view smoothing. |
+| Setting                     | Default | Behavior                                                                                                    |
+| --------------------------- | ------- | ----------------------------------------------------------------------------------------------------------- |
+| Enable Free Look            | On      | Look around in chase with the existing Pan View and Tilt View controls. Center resets the view immediately. |
+| Look Sensitivity            | 1       | Scale the game's view sensitivity.                                                                          |
+| Look Deadzone               | 0.15    | Ignore small look inputs, with a range of 0 to 1.                                                           |
+| Auto-Center Delay (seconds) | 0.15    | Wait 0 to 30 seconds after look input stops before returning to center.                                     |
+| Auto-Center Speed           | 5       | Adjust the automatic return speed from 0.1 to 20 while respecting the game's view smoothing.                |
 
 The sensitivity, deadzone and auto-center settings require Enable Free Look.
 Manual look supports the game's inversion settings and is limited to 170
@@ -32,16 +30,16 @@ idle timer.
 
 ### Chase Camera
 
-| Setting | Default | Behavior |
-| --- | --- | --- |
-| Remember Camera View | On | Restore your last cockpit/chase choice across aircraft changes, respawns, matches and game restarts. |
-| Enable Camera Adjustments | Off | Apply the saved distance and vertical framing adjustments. |
-| Camera Distance | 0.65 | Scale chase distance from 0.25 to 2. A value of 1 uses the original distance. Requires Enable Camera Adjustments. |
-| Aircraft Vertical Offset | -0.15 | Move the aircraft vertically by -0.35 to 0.35 of screen height. Negative values place it lower. Requires Enable Camera Adjustments. |
-| Enable Target Focus | Off | Hold Chase Target Focus (Hold) to follow the newest marked target. Requires assigning that action in Flight Controls. |
-| Target Focus Hold Delay (seconds) | 0.3 | Set the hold threshold from 0.3 to 2 seconds. Requires Enable Target Focus. |
-| Correct External Weapon FOV | On | Use external-view FOV for bomb aiming and boresight zoom outside the cockpit. |
-| Hit Sound Outside Cockpit | On | Play external-view hit confirmation audio when the game's hit markers are enabled. |
+| Setting                           | Default | Behavior                                                                                                                            |
+| --------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Remember Camera View              | On      | Restore your last cockpit/chase choice across aircraft changes, respawns, matches and game restarts.                                |
+| Enable Camera Adjustments         | Off     | Apply the saved distance and vertical framing adjustments.                                                                          |
+| Camera Distance                   | 0.65    | Scale chase distance from 0.25 to 2. A value of 1 uses the original distance. Requires Enable Camera Adjustments.                   |
+| Aircraft Vertical Offset          | -0.15   | Move the aircraft vertically by -0.35 to 0.35 of screen height. Negative values place it lower. Requires Enable Camera Adjustments. |
+| Enable Target Focus               | Off     | Hold Chase Target Focus (Hold) to follow the newest marked target. Requires assigning that action in Flight Controls.               |
+| Target Focus Hold Delay (seconds) | 0.3     | Set the hold threshold from 0.3 to 2 seconds. Requires Enable Target Focus.                                                         |
+| Correct External Weapon FOV       | On      | Use external-view FOV for bomb aiming and boresight zoom outside the cockpit.                                                       |
+| Hit Sound Outside Cockpit         | On      | Play external-view hit confirmation audio when the game's hit markers are enabled.                                                  |
 
 Free look, camera adjustments and target focus have independent switches.
 Native chase zoom and camera presets are available. Release target focus to
@@ -52,17 +50,17 @@ button is released.
 
 The layout, minimap and instrument options require Show Flight HUD.
 
-| Setting | Default | Behavior |
-| --- | --- | --- |
-| Show Flight HUD | On | Display the flight HUD in chase view. |
-| HUD Follows Camera | Off | Center and level the layout in the camera viewport during free look and target focus. Aircraft attitude values still come from the aircraft. |
-| Show Minimap | On | Display the chase minimap alongside the flight HUD. |
-| Show Pitch Ladder | On | Display the pitch ladder and horizon line. |
-| Show Aircraft Reference | On | Display the fixed aircraft reference mark. |
-| Show Left Instruments | On | Display speed, angle of attack, Mach, G-force and fuel. Warning widgets remain available when this group is hidden. |
-| Show Right Instruments | On | Display throttle, RPM, altitude and climb rate. |
-| Show Compass | On | Display the heading ribbon and bearing using aircraft heading. |
-| Show Joystick Indicator | On | Draw the mouse stick line and dot. Mouse steering is enabled separately under Flight Controls. |
+| Setting                 | Default | Behavior                                                                                                                                     |
+| ----------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Show Flight HUD         | On      | Display the flight HUD in chase view.                                                                                                        |
+| HUD Follows Camera      | Off     | Center and level the layout in the camera viewport during free look and target focus. Aircraft attitude values still come from the aircraft. |
+| Show Minimap            | On      | Display the chase minimap alongside the flight HUD.                                                                                          |
+| Show Pitch Ladder       | On      | Display the pitch ladder and horizon line.                                                                                                   |
+| Show Aircraft Reference | On      | Display the fixed aircraft reference mark.                                                                                                   |
+| Show Left Instruments   | On      | Display speed, angle of attack, Mach, G-force and fuel. Warning widgets remain available when this group is hidden.                          |
+| Show Right Instruments  | On      | Display throttle, RPM, altitude and climb rate.                                                                                              |
+| Show Compass            | On      | Display the heading ribbon and bearing using aircraft heading.                                                                               |
+| Show Joystick Indicator | On      | Draw the mouse stick line and dot. Mouse steering is enabled separately under Flight Controls.                                               |
 
 These six visibility switches default to On for new configs, missing keys and
 individual resets. Existing saved Off values carry over; enable the switches
@@ -70,15 +68,15 @@ or reset each one in Configuration Manager to use these defaults.
 
 ### Flight Controls
 
-| Setting | Default | Behavior |
-| --- | --- | --- |
-| Enable Mouse Flight Input | Off | Allow the game's mouse flight input in chase. Requires the native mouse flight mode, Enable Free Look off and target focus inactive. |
-| Throttle Chord: Assist Off (Hold) | Off | Hold Increase Throttle and Decrease Throttle together to temporarily disable native flight assist. Release either to restore its previous state. |
-| Throttle Down: Ground Brakes (Hold) | Off | Hold Decrease Throttle alone with throttle at zero for one continuous second of wheel contact to apply brakes. |
-| Yaw Chord: Auto-Level (Hold) | Off | Hold both yaw directions to level the wings and nose through normal pitch/roll controls. Applies to airborne planes outside auto-hover. |
-| Smooth Button Yaw | Off | Ramp digital yaw input for smaller tap corrections and gradual full rudder. |
-| Yaw Press Time (seconds) | 2 | Set the centered-to-full rudder time from 0.05 to 5 seconds. Requires Smooth Button Yaw. |
-| Yaw Return Time (seconds) | 2 | Set the full-rudder-to-center time from 0.02 to 5 seconds. Reversals pass through center. Requires Smooth Button Yaw. |
+| Setting                             | Default | Behavior                                                                                                                                         |
+| ----------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Enable Mouse Flight Input           | Off     | Allow the game's mouse flight input in chase. Requires the native mouse flight mode, Enable Free Look off and target focus inactive.             |
+| Throttle Chord: Assist Off (Hold)   | Off     | Hold Increase Throttle and Decrease Throttle together to temporarily disable native flight assist. Release either to restore its previous state. |
+| Throttle Down: Ground Brakes (Hold) | Off     | Hold Decrease Throttle alone with throttle at zero for one continuous second of wheel contact to apply brakes.                                   |
+| Yaw Chord: Auto-Level (Hold)        | Off     | Hold both yaw directions to level the wings and nose through normal pitch/roll controls. Applies to airborne planes outside auto-hover.          |
+| Smooth Button Yaw                   | Off     | Ramp digital yaw input for smaller tap corrections and gradual full rudder.                                                                      |
+| Yaw Press Time (seconds)            | 2       | Set the centered-to-full rudder time from 0.05 to 5 seconds. Requires Smooth Button Yaw.                                                         |
+| Yaw Return Time (seconds)           | 2       | Set the full-rudder-to-center time from 0.02 to 5 seconds. Reversals pass through center. Requires Smooth Button Yaw.                            |
 
 The throttle and yaw shortcuts use both poles of existing native actions, so
 they need no extra custom binding. Axis Modifier bypasses both throttle
@@ -93,11 +91,11 @@ immediately.
 
 ### Combat
 
-| Setting | Default | Behavior |
-| --- | --- | --- |
-| Missile Camera (Hold Fire) | Off | Launch one missile per Fire press. Hold for 0.3 seconds to follow its actual spawn, then release or wait for impact to return to the previous cockpit/chase view and FOV. |
-| Single-Target Cycling | Off | Cycle one visible, detected enemy per Mark Target tap, preferring contacts suited to the selected weapon. |
-| Aim Turrets with Camera | On | Aim manual turrets without an assigned target along the chase camera, including recentering. Disabling uses the aircraft nose. Native automatic aiming at assigned targets takes priority. |
+| Setting                    | Default | Behavior                                                                                                                                                                                   |
+| -------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Missile Camera (Hold Fire) | Off     | Launch one missile per Fire press. Hold for 0.3 seconds to follow its actual spawn, then release or wait for impact to return to the previous cockpit/chase view and FOV.                  |
+| Single-Target Cycling      | Off     | Cycle one visible, detected enemy per Mark Target tap, preferring contacts suited to the selected weapon.                                                                                  |
+| Aim Turrets with Camera    | On      | Aim manual turrets without an assigned target along the chase camera, including recentering. Disabling uses the aircraft nose. Native automatic aiming at assigned targets takes priority. |
 
 The missile camera uses the first marked target and supports rail, bay and
 network spawn delays. Each additional missile requires a new press. Target
@@ -110,13 +108,13 @@ Requires a controller and input backend supporting standard Rewired rumble.
 Feedback uses the last active controller and supports one- and two-motor
 devices.
 
-| Setting | Default | Behavior |
-| --- | --- | --- |
-| Enable Controller Vibration | Off | Enable controller feedback during local flight. |
-| Vibration Strength | 0.6 | Scale overall output from 0 to 1. |
-| Weapon Feedback | On | Pulse for actual gunfire and ordnance launches, including turret guns. |
-| Damage Feedback | On | Pulse when an aircraft part loses hit points. |
-| G-Force Feedback | On | Add sustained feedback above 4 positive G or below -2 G. |
+| Setting                     | Default | Behavior                                                               |
+| --------------------------- | ------- | ---------------------------------------------------------------------- |
+| Enable Controller Vibration | Off     | Enable controller feedback during local flight.                        |
+| Vibration Strength          | 0.6     | Scale overall output from 0 to 1.                                      |
+| Weapon Feedback             | On      | Pulse for actual gunfire and ordnance launches, including turret guns. |
+| Damage Feedback             | On      | Pulse when an aircraft part loses hit points.                          |
+| G-Force Feedback            | On      | Add sustained feedback above 4 positive G or below -2 G.               |
 
 Strength and effect switches require Enable Controller Vibration. Feedback
 stops on menus, pause, focus loss, death/ejection and aircraft/device changes.
@@ -126,11 +124,11 @@ Motor commands also have a short timeout.
 
 These three actions appear in the game's Flight Controls and start unbound.
 
-| Action | Behavior |
-| --- | --- |
-| Chase Cam Toggle | Swap cockpit/chase or return to cockpit from another view. |
-| Chase Target Focus (Hold) | Follow the newest marked target after the configured delay. Can share the Mark Target button. |
-| Fire Guns (Hold) | Fire guns independently of the selected missile, bomb or other weapon, using the game's Link Guns setting. |
+| Action                    | Behavior                                                                                                   |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Chase Cam Toggle          | Swap cockpit/chase or return to cockpit from another view.                                                 |
+| Chase Target Focus (Hold) | Follow the newest marked target after the configured delay. Can share the Mark Target button.              |
+| Fire Guns (Hold)          | Fire guns independently of the selected missile, bomb or other weapon, using the game's Link Guns setting. |
 
 With Link Guns off, Fire Guns (Hold) uses the fitted gun with the lowest
 ammunition cost per round. Equal prices use native weapon order. Selecting
