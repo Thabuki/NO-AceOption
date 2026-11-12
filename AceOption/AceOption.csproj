@@ -5,7 +5,7 @@
     <RootNamespace>AceOption</RootNamespace>
     <Title>Ace Option</Title>
     <Description>A quality-of-life mod for Nuclear Option, with improved camera controls, a customizable HUD, and an Ace Combat-inspired flying experience.</Description>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <LangVersion>latest</LangVersion>
     <GameDir Condition="'$(GameDir)' == ''">D:\SteamLibrary\steamapps\common\Nuclear Option</GameDir>
   </PropertyGroup>

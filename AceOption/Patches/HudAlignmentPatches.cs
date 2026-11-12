@@ -16,6 +16,14 @@ internal static class HudAfterCameraPatch
     private static void Postfix(CameraStateManager __instance) => HudAlignment.AfterCamera(__instance);
 }
 
+[HarmonyPatch(typeof(CameraStateManager), "CheckOriginShift")]
+internal static class HudOriginShiftPatch
+{
+    private static void Prefix(CameraStateManager __instance, out HudAlignment.OriginShiftState __state) =>
+        __state = HudAlignment.BeforeOriginShift(__instance);
+    private static void Postfix(HudAlignment.OriginShiftState __state) => __state.Restore();
+}
+
 [HarmonyPatch(typeof(CombatHUD), "LateUpdate")]
 internal static class CombatHudAfterCameraPatch
 {

@@ -95,7 +95,6 @@ internal static class ConfigMenuTests
             CheckDependency(config, "Other", "TargetFocusEnabled", "TargetFocusHoldDelay", .3f, 1f);
             CheckDependency(config, "Chase HUD", "FlightHud", "Map", true, false);
             CheckDependency(config, "Flight Controls", "SmoothButtonYaw", "YawRiseTime", 2f, 1f);
-            CheckDependency(config, "Controller Feedback", "ControllerVibration", "VibrationIntensity", .6f, .8f);
 
             Check(config.TryGetEntry<bool>("Other", "AlwaysFreeLook", out var look) && Label(look) == "Enable Free Look",
                 "The visible free-look switch uses the new name with its existing config key");

@@ -5,11 +5,11 @@ customizable HUD, and an Ace Combat-inspired flying experience. Requires
 **BepInEx 5**. Configure the mod through **BepInEx Configuration Manager** or
 its config file.
 
-Current version: **1.0.0**.
+Current version: **1.0.1**.
 
 ## Features
 
-The custom menu has six groups. The defaults below apply to new configurations
+The custom menu has five groups. The defaults below apply to new configurations
 and missing keys. Settings apply live, and saved choices carry over on
 upgrade.
 
@@ -32,7 +32,7 @@ idle timer.
 
 | Setting                           | Default | Behavior                                                                                                                            |
 | --------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Remember Camera View              | On      | Restore your last cockpit/chase choice across aircraft changes, respawns, matches and game restarts.                                |
+| Remember Camera View              | Off     | Enable to restore your last cockpit/chase choice across aircraft changes, respawns, matches and game restarts.                      |
 | Enable Camera Adjustments         | Off     | Apply the saved distance and vertical framing adjustments.                                                                          |
 | Camera Distance                   | 0.65    | Scale chase distance from 0.25 to 2. A value of 1 uses the original distance. Requires Enable Camera Adjustments.                   |
 | Aircraft Vertical Offset          | -0.15   | Move the aircraft vertically by -0.35 to 0.35 of screen height. Negative values place it lower. Requires Enable Camera Adjustments. |
@@ -42,6 +42,9 @@ idle timer.
 | Hit Sound Outside Cockpit         | On      | Play external-view hit confirmation audio when the game's hit markers are enabled.                                                  |
 
 Free look, camera adjustments and target focus have independent switches.
+Remember Camera View starts off, so new aircraft use the native cockpit start.
+Existing saved On values carry over; turn the setting off or reset it in
+Configuration Manager to use the new default.
 Native chase zoom and camera presets are available. Release target focus to
 return to chase. With free look enabled, Center cancels focus until the focus
 button is released.
@@ -102,24 +105,6 @@ network spawn delays. Each additional missile requires a new press. Target
 cycling uses current HUD contacts with known positions and the game's
 exclusions. Full-map selection uses the native controls.
 
-### Vibration
-
-Requires a controller and input backend supporting standard Rewired rumble.
-Feedback uses the last active controller and supports one- and two-motor
-devices.
-
-| Setting                     | Default | Behavior                                                               |
-| --------------------------- | ------- | ---------------------------------------------------------------------- |
-| Enable Controller Vibration | Off     | Enable controller feedback during local flight.                        |
-| Vibration Strength          | 0.6     | Scale overall output from 0 to 1.                                      |
-| Weapon Feedback             | On      | Pulse for actual gunfire and ordnance launches, including turret guns. |
-| Damage Feedback             | On      | Pulse when an aircraft part loses hit points.                          |
-| G-Force Feedback            | On      | Add sustained feedback above 4 positive G or below -2 G.               |
-
-Strength and effect switches require Enable Controller Vibration. Feedback
-stops on menus, pause, focus loss, death/ejection and aircraft/device changes.
-Motor commands also have a short timeout.
-
 ## Additional controls and automatic feedback
 
 These three actions appear in the game's Flight Controls and start unbound.
@@ -138,8 +123,9 @@ empty, cooling or safety-blocked default keeps its place. Link Guns fires all
 ready fixed and turret gun stations. Ammo, cadence and safeties use the native
 weapon methods.
 
-The HUD automatically shows **LEVELING** during yaw-chord leveling and
-**ASSIST OFF** during the throttle chord. Releasing or interrupting the
+The HUD automatically shows **AUTO-LEVEL** during yaw-chord leveling and
+**FLIGHT ASSIST OFF** during the throttle chord. These labels use the native
+HUD font at 85% of the action-message size. Releasing or interrupting the
 shortcut removes its indicator. Throttle-chord assist changes use this held
 indicator instead of queueing timed assist messages.
 
@@ -156,8 +142,10 @@ These behaviors have no separate menu switch.
 - **Final-camera HUD alignment** refreshes the visible chase flight HUD after
   camera movement and floating-origin shifts. Native weapon cues are placed
   after the final HUD layout.
+- **Screen-space HUD stability** preserves overlay-canvas positions during
+  world-origin shifts before projecting chase instruments and weapon cues.
 - **Look-away HUD timing** evaluates supplementary instrument visibility after
-  the final camera and HUD layout, preventing early-layout flicker in chase.
+  the final camera and HUD layout.
 - **Velocity-cue placement** preserves the native screen projection when HUD
   Follows Camera moves or levels the cue's parent.
 - **Shared target-mark/focus handling** marks on release, consumes a press
@@ -171,6 +159,11 @@ These behaviors have no separate menu switch.
   updates and the native chase-exit dereference after that unit is cleared.
 - **Dependent menu controls** gray out child editors and reset buttons while
   their parent is disabled, retaining saved values for re-enabling.
+
+The 1.0.1 canvas correction has offline regression coverage, and a player
+retest did not reproduce the earlier delayed third-person HUD flicker.
+Broader gameplay coverage remains pending; see the
+[Chase HUD notes](docs/GUIDE.md#chase-hud).
 
 ## Install and upgrade
 
@@ -192,9 +185,12 @@ Keep the README, guide, license notices and build information with your
 extracted download for reference.
 
 Existing Ace Option settings and saved action bindings carry over on upgrade.
-Camera, HUD, audio and vibration run locally. Input actions, weapon firing
-and native turret targeting use the game's existing simulation and
-replication.
+Controller vibration and its settings have been removed. Old
+`[Controller Feedback]` config entries are ignored and can be deleted with
+the game closed.
+
+Camera, HUD and audio run locally. Input actions, weapon firing and native
+turret targeting use the game's existing simulation and replication.
 
 The guide covers controls, configuration and saved settings.
 

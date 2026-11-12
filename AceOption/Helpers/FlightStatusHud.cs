@@ -54,11 +54,12 @@ internal static class FlightStatusHud
         // Follow native theme/font changes without cloning message-feed scripts.
         label.font = source.font;
         label.fontSharedMaterial = source.fontSharedMaterial;
-        label.fontSize = source.fontSize;
+        // Keep held-state feedback quieter than the native action messages.
+        label.fontSize = source.fontSize * .85f;
         label.fontStyle = source.fontStyle;
         label.color = source.color;
-        label.rectTransform.sizeDelta = new Vector2(-32, Mathf.Max(80, source.fontSize * 3));
-        label.text = leveling ? (assist ? "LEVELING\nASSIST OFF" : "LEVELING") : "ASSIST OFF";
+        label.rectTransform.sizeDelta = new Vector2(-32, Mathf.Max(80, label.fontSize * 3));
+        label.text = leveling ? (assist ? "AUTO-LEVEL\nFLIGHT ASSIST OFF" : "AUTO-LEVEL") : "FLIGHT ASSIST OFF";
         label.gameObject.SetActive(true);
     }
 

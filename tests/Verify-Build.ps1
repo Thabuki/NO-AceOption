@@ -145,12 +145,10 @@ if ($LASTEXITCODE -ne 0) { throw 'Yaw-chord auto-level tests failed' }
 $combatTestExe = Join-Path $repo 'AceOption\obj\local\OptionalCombatTests.exe'
 & $compiler /nologo /target:exe /langversion:latest "/out:$combatTestExe" `
     (Join-Path $repo 'AceOption\Helpers\TargetCycling.cs') `
-    (Join-Path $repo 'AceOption\Helpers\VibrationEnvelope.cs') `
-    (Join-Path $repo 'AceOption\Helpers\ControllerFeedback.cs') `
     (Join-Path $PSScriptRoot 'OptionalCombatTests.cs')
 if ($LASTEXITCODE -ne 0) { throw 'Optional combat test compilation failed' }
 & $combatTestExe
-if ($LASTEXITCODE -ne 0) { throw 'Optional targeting/controller feedback tests failed' }
+if ($LASTEXITCODE -ne 0) { throw 'Optional targeting tests failed' }
 
 # Read metadata only; do not launch the game or execute its assemblies.
 Add-Type -Path (Join-Path $GameDir 'BepInEx\core\Mono.Cecil.dll')

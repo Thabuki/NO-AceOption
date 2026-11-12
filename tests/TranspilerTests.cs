@@ -547,17 +547,20 @@ internal static class TranspilerTests
             "Native deselection retains map/HUD cleanup");
         Check(AccessTools.Method(typeof(WeaponManager), "TargetListChanged") != null,
             "Native target notification exists");
-        var fired = AccessTools.Method(typeof(WeaponStation), "UpdateLastFired");
-        Check(fired.GetParameters().Length == 1 && fired.GetParameters()[0].ParameterType == typeof(int),
-            "Feedback hook receives the native fired count");
-        Check(AccessTools.Method(typeof(UnitPart), "ApplyDamage") != null &&
-            AccessTools.Field(typeof(UnitPart), "hitPoints").FieldType == typeof(float),
-            "Damage feedback observes native part hit points");
-        Check(AccessTools.Method(typeof(Rewired.Joystick), "SetVibration", new[] { typeof(int), typeof(float), typeof(float) }) != null,
-            "Installed Rewired supports motor vibration with a timeout");
-        Check(AccessTools.Method(typeof(Rewired.Joystick), "StopVibration") != null,
-            "Installed Rewired supports explicit motor cleanup");
-        Console.WriteLine("PASS: optional targeting/feedback hooks match the installed game and Rewired");
+        using (var metadata = Mono.Cecil.AssemblyDefinition.ReadAssembly(plugin.Location))
+        {
+            Check(!metadata.MainModule.Types.Any(t => t.Name.Contains("Vibration") ||
+                new[] { "ControllerFeedback", "WeaponFeedbackPatch", "DamageFeedbackPatch" }.Contains(t.Name)),
+                "The plugin contains no vibration helpers or firing/damage feedback patches");
+            var fields = metadata.MainModule.Types.Single(t => t.FullName == "AceOption.Plugin").Fields;
+            Check(!fields.Any(f => f.Name.Contains("Vibration")),
+                "The plugin exposes no vibration configuration fields");
+            Check(!metadata.MainModule.GetMemberReferences().Any(m =>
+                m.DeclaringType.Namespace.StartsWith("Rewired") &&
+                m.Name.IndexOf("Vibration", StringComparison.OrdinalIgnoreCase) >= 0),
+                "The plugin references no Rewired motor output or capability APIs");
+        }
+        Console.WriteLine("PASS: optional targeting hooks match the installed game");
     }
 
     private static void VerifyCameraPreferenceContracts(Assembly plugin)
@@ -617,12 +620,6 @@ internal static class TranspilerTests
             new {
                 Name = "Combat",
                 Keys = new[] { "MissileFollowCamera", "TargetCycling", "TurretAim" }
-            },
-            new {
-                Name = "Vibration",
-                Keys = new[] {
-                    "ControllerVibration", "VibrationIntensity", "VibrationWeapons", "VibrationDamage", "VibrationGForce"
-                }
             }
         };
         var awake = ReadMetadataInstructions(AccessTools.Method(plugin.GetType("AceOption.Plugin", true), "Awake"));
@@ -641,7 +638,7 @@ internal static class TranspilerTests
                 };
             }).Where(s => s.Browsable != false).ToList();
         Check(settings.Select(s => s.Category).Distinct().SequenceEqual(groups.Select(g => g.Name)),
-            "Menu registration preserves the six requested unnumbered sections in order");
+            "Menu registration preserves the five requested unnumbered sections in order");
         foreach (var group in groups)
             Check(settings.Where(s => s.Category == group.Name).OrderByDescending(s => s.Order)
                     .Select(s => s.Key).SequenceEqual(group.Keys),
@@ -663,7 +660,7 @@ internal static class TranspilerTests
         var speedParent = (BepInEx.Configuration.ConfigDefinition)AccessTools.Field(speedMenu.GetType(), "Parent").GetValue(speedMenu);
         Check(speedParent.Section == "Other" && speedParent.Key == "AlwaysFreeLook",
             "Auto-Center Speed depends on Enable Free Look");
-        Console.WriteLine("PASS: six unnumbered menu groups, option placement, target focus flag, deadzone and recenter speed");
+        Console.WriteLine("PASS: five unnumbered menu groups, option placement, target focus flag, deadzone and recenter speed");
     }
 
     private static void VerifyHudAlignmentContracts(Assembly plugin)
@@ -671,6 +668,7 @@ internal static class TranspilerTests
         foreach (var spec in new[] {
             new { Patch = "HudCameraFollowPatch", Target = typeof(FlightHud), Method = "Update" },
             new { Patch = "HudAfterCameraPatch", Target = typeof(CameraStateManager), Method = "LateUpdate" },
+            new { Patch = "HudOriginShiftPatch", Target = typeof(CameraStateManager), Method = "CheckOriginShift" },
             new { Patch = "CombatHudAfterCameraPatch", Target = typeof(CombatHUD), Method = "LateUpdate" },
             new { Patch = "LookAwayHudAfterCameraPatch", Target = typeof(HeadMountedDisplay), Method = "Update" }
         })
@@ -683,7 +681,7 @@ internal static class TranspilerTests
         }
         var helper = plugin.GetType("AceOption.Helpers.HudAlignment", true);
         RuntimeHelpers.RunClassConstructor(helper.TypeHandle);
-        foreach (string field in new[] { "updateHud", "updateCombatHud", "updateLookAway", "aircraft", "velocityVector" })
+        foreach (string field in new[] { "updateHud", "updateCombatHud", "updateLookAway", "aircraft", "velocityVector", "canvas" })
             Check(AccessTools.Field(helper, field).GetValue(null) is Delegate,
                 "HUD delegate/accessor initializes against installed game: " + field);
 
@@ -691,6 +689,16 @@ internal static class TranspilerTests
         int update = camera.FindIndex(c => c.operand is MethodInfo m && m.Name == "UpdateState");
         int origin = camera.FindIndex(c => c.operand is MethodInfo m && m.Name == "CheckOriginShift");
         Check(update >= 0 && origin > update, "Final camera hook follows both camera state update and origin shifting");
+        var shift = ReadMetadataInstructions(AccessTools.Method(typeof(FloatingOrigin), "OriginShift"));
+        Check(shift.Any(c => c.operand is Mono.Cecil.MethodReference m && m.Name == "GetRootGameObjects") &&
+            shift.Any(c => c.operand is Mono.Cecil.MethodReference m && m.Name == "set_position") &&
+            !shift.Any(c => c.operand is Mono.Cecil.MethodReference m && m.DeclaringType.FullName == "UnityEngine.Canvas"),
+            "Native origin shifting translates scene roots without excluding overlay canvases");
+        var canvasType = AccessTools.Field(typeof(FlightHud), "canvas").FieldType;
+        Check(canvasType.FullName == "UnityEngine.Canvas" &&
+            AccessTools.Property(canvasType, "rootCanvas") != null &&
+            AccessTools.Property(canvasType, "renderMode") != null,
+            "Overlay canvas snapshot accessors match installed game and Unity APIs");
         var hud = PatchProcessor.GetOriginalInstructions(AccessTools.Method(typeof(FlightHud), "Update"), (ILGenerator)null);
         Check(hud.Any(c => c.operand is MethodInfo m && m.Name == "WorldToScreenPoint") &&
             hud.Any(c => c.operand is MethodInfo m && m.Name == "get_velocity"),

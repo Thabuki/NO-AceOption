@@ -2,8 +2,8 @@
 
 [README and full feature list](../README.md)
 
-Ace Option adds configurable chase-camera, HUD, input and controller feedback
-features to Nuclear Option. This guide describes the current 1.0.0 behavior.
+Ace Option adds configurable chase-camera, HUD, input and combat features
+to Nuclear Option. This guide describes the current 1.0.1 behavior.
 The README lists every visible setting in custom-menu order.
 
 ## Install and upgrade
@@ -35,9 +35,16 @@ Configuration Manager applies changes while the game runs. Close the game
 before editing the config manually. Existing Ace Option values carry over on
 upgrade. Defaults apply to missing keys and new files.
 
+Controller vibration has been removed, including weapon, damage and G-force
+feedback. Its five settings and Vibration menu group are no longer available.
+Old `[Controller Feedback]` entries are ignored, even if previously enabled;
+you can remove that section with the game closed. Offline checks cover the
+removal and the remaining menu layout. In-game menu and controller checks
+remain pending.
+
 The visible menu groups are Free Look, Chase Camera, Chase HUD, Flight
-Controls, Combat and Vibration. Saved sections also include `Other`, `Virtual
-Joystick` and `Controller Feedback`. Use the reference table below when
+Controls and Combat. Saved sections also include `Other` and `Virtual
+Joystick`. Use the reference table below when
 editing those keys. Dependent menu editors and reset buttons become
 unavailable while their parent switch is off. Their values are retained for
 the next time the parent is enabled.
@@ -91,12 +98,15 @@ available. Terrain checks follow distance, orbit and focus movement. Relative
 transform restoration prevents frame-to-frame accumulation and supports the
 game's floating-origin shifts. Very close distances can clip large aircraft.
 
-Remember Camera View is on by default. Cockpit/chase selections made through
-native controls or Chase Cam Toggle are saved across aircraft changes,
-respawns, matches and game restarts. The initial choice is cockpit. Temporary
-orbit and spectator subjects, death and ejection leave the saved choice
-intact. Turning the setting off makes new aircraft use the native cockpit
-start. The saved choice is stored as the hidden `Other.LastCameraView` key.
+Remember Camera View is off by default, so new aircraft use the native cockpit
+start. Enable it to save cockpit/chase selections made through native controls
+or Chase Cam Toggle across aircraft changes, respawns, matches and game
+restarts. The initial saved choice is cockpit. Temporary orbit and spectator
+subjects, death and ejection leave the saved choice intact. Turning the
+setting off retains that choice for later re-enabling. The saved choice is
+stored as the hidden `Other.LastCameraView` key. Existing saved On values
+carry over on upgrade; turn the setting off or reset it in Configuration
+Manager to use the new default.
 
 ### Target focus and marking
 
@@ -147,26 +157,44 @@ remove those keys so they are recreated with the defaults on the next launch.
 
 Hiding the left instrument group preserves warning widgets. The supplementary
 look-away HUD evaluates native visibility after the final camera and HUD
-layout, so early Update order cannot make it flicker between layouts. Hiding
-the minimap preserves the threat-warning widgets around it, and the full map
-uses its native controls.
+layout. Hiding the minimap preserves the threat-warning widgets around it,
+and the full map uses its native controls.
 
 The visible flight HUD is refreshed after the final camera pose and
-floating-origin shift. Native weapon cues are placed after the final HUD
-layout. HUD Follows Camera starts off, using aircraft-nose alignment. Enabling
-it centers and levels the layout in the render viewport during free look,
+floating-origin shift. Screen-space overlay canvases retain their positions
+during that shift, keeping subsequent instrument and aiming-marker placement
+in the same UI coordinate frame. This correction applies automatically in
+local chase view with Show Flight HUD enabled, in both alignment modes.
+Cockpit and spectator views, and canvases outside screen-space overlay mode,
+retain their native handling.
+Native weapon cues are placed after the final HUD layout. HUD Follows Camera
+starts off, using aircraft-nose alignment. Enabling it centers and levels the
+layout in the render viewport during free look,
 focus and recentering. Pitch and heading values describe aircraft attitude,
 and native world-projected weapon cues and the velocity vector follow their
 world points. The velocity cue keeps its native screen position when the
 camera-centered layout moves or levels the HUD parent. Both alignment
 corrections apply automatically while their chase HUD features are in use.
 
-LEVELING appears near the top of the HUD while yaw-chord leveling is active.
-ASSIST OFF appears there during a throttle-chord hold. Both appear together
-when both shortcuts are active. Release or interruption removes the indicator.
-Throttle-chord assist changes suppress their native timed on/off messages.
-Ordinary assist toggles and unrelated action reports use the native message
-feed. Ground braking uses the native brake icon.
+The delayed third-person HUD flicker reported in 1.0.0 was not reproduced in
+a player retest of 1.0.1. That report supports the correction; coverage of
+longer sessions and other configurations remains pending. Check instruments
+and aiming markers after flying for several minutes, looking around and
+returning to chase from the cockpit. Offline checks and this limited retest
+do not establish that every flicker case is resolved.
+
+**AUTO-LEVEL** appears near the top of the HUD while the yaw chord levels the
+wings and nose. **FLIGHT ASSIST OFF** appears there while the throttle chord
+temporarily disables native flight assist. Both use the native HUD font at
+85% of the action-message size and appear on separate lines when both
+shortcuts are active. Release or interruption removes the corresponding
+indicator; these labels report the held shortcuts rather than the assist
+state after release. Throttle-chord assist changes suppress their native
+timed on/off messages. Ordinary assist toggles and unrelated action reports
+use the native message feed. Ground braking uses the native brake icon.
+
+Readability of the smaller labels still needs an in-game check in cockpit
+and chase view, including both shortcuts held together.
 
 ## Flight controls
 
@@ -226,7 +254,7 @@ also affects VTOL tilt/vectoring automation on supported aircraft.
 
 Menus, map, pause, focus loss, pilot control loss, death/ejection, ownership
 changes and detached cockpits interrupt the hold and restore assist. The HUD
-shows ASSIST OFF throughout an active hold.
+shows **FLIGHT ASSIST OFF** throughout an active hold.
 
 ### Throttle Down: Ground Brakes (Hold)
 
@@ -299,27 +327,9 @@ setting off uses the aircraft nose. Assigned targets use the game's automatic
 aiming priority in either mode. Enable Free Look controls manual camera
 movement, and Enable Target Focus controls target following independently.
 
-## Controller vibration
-
-Enable Controller Vibration starts off. Enable it on a controller/backend that
-supports standard Rewired rumble. Vibration Strength defaults to 0.6 and
-ranges from 0 to 1. Weapon Feedback, Damage Feedback and G-Force Feedback
-start on and become active with the parent switch.
-
-Weapon pulses follow actual gunfire and ordnance launches from the local
-aircraft, including turret guns. Damage pulses follow part hit-point loss.
-Sustained feedback begins above 4 positive G or below -2 G. The effect
-envelopes use original Ace Combat-inspired tuning.
-
-Feedback targets the last active joystick/gamepad, with support checks and
-one- or two-motor output. Switching to keyboard/mouse stops the previous
-controller. Opt-out, zero strength, menus, map, pause, focus loss,
-death/ejection, leaving cockpit/chase and aircraft/device changes stop output.
-Timed motor commands provide a fallback if updates are interrupted.
-
 ## Saved settings reference
 
-The README provides the visible labels and behavior for all 37 menu settings.
+The README provides the visible labels and behavior for all 32 menu settings.
 This table gives their saved keys plus the hidden camera preference.
 
 | Saved section | Key | Default | Range or role |
@@ -329,7 +339,7 @@ This table gives their saved keys plus the hidden camera preference.
 | Other | FreeLookDeadzone | 0.15 | 0 to 1. |
 | Other | AutoCenterDelay | 0.15 | 0 to 30 seconds. |
 | Other | AutoCenterSpeed | 5 | 0.1 to 20. |
-| Other | RememberCameraView | true | Persist cockpit/chase choice. |
+| Other | RememberCameraView | false | Opt in to persist cockpit/chase choice. |
 | Other | LastCameraView | Cockpit | Hidden Cockpit/Chase preference. |
 | Other | CameraAdjustments | false | Distance/framing parent. |
 | Other | CameraDistance | 0.65 | 0.25 to 2. |
@@ -357,15 +367,10 @@ This table gives their saved keys plus the hidden camera preference.
 | Combat | MissileFollowCamera | false | Single press/held camera. |
 | Combat | TargetCycling | false | Single-target tap cycling. |
 | Chase HUD | TurretAim | true | Saved here, displayed under Combat. |
-| Controller Feedback | ControllerVibration | false | Vibration parent. |
-| Controller Feedback | VibrationIntensity | 0.6 | 0 to 1. |
-| Controller Feedback | VibrationWeapons | true | Weapon pulses. |
-| Controller Feedback | VibrationDamage | true | Damage pulses. |
-| Controller Feedback | VibrationGForce | true | Sustained G feedback. |
 
 ## Client-side scope
 
-Camera, HUD, audio and vibration run locally. Flight-input shaping, firing,
+Camera, HUD and audio run locally. Flight-input shaping, firing,
 turret aim and target assignments use native methods and the game's existing
 replication. Ace Option uses the game's aircraft control authority, weapon
 statistics and pilot physiology.

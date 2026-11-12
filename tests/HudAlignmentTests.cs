@@ -256,6 +256,83 @@ internal static class HudAlignmentTests
             Time.frameCount++;
             cam.Tick();
             Check(display.Updates == displayCount + 1, "An old deferred look-away update never leaks into a later frame");
+
+            // FloatingOrigin moves every scene root, including overlay canvases.
+            // Unity restores those canvases for rendering. A projection written
+            // while their roots are displaced then jumps by the shift at render.
+            SceneSingleton<HeadMountedDisplay>.i = display;
+            foreach (bool cameraLock in new[] { false, true })
+            foreach (int canvasLayout in new[] { 0, 1, 2 })
+            {
+                AceOption.Plugin.HudFollowsCamera.Value = cameraLock;
+                combat.Canvas = canvasLayout == 1 ? replacement.Canvas : new Canvas();
+                display.Canvas = canvasLayout == 1 ? replacement.Canvas : new Canvas();
+                if (canvasLayout == 2)
+                {
+                    combat.Canvas.parentCanvas = display.Canvas.parentCanvas = replacement.Canvas;
+                    combat.Canvas.transform.parent = display.Canvas.transform.parent = replacement.Canvas.transform;
+                }
+                foreach (var root in new[] { replacement.Canvas.rootCanvas, combat.Canvas.rootCanvas, display.Canvas.rootCanvas })
+                    root.transform.position = root.layoutPosition = new Vector3(10, 20, 0);
+                combat.Reticle.parent = combat.Canvas.transform;
+                cam.finalNose = new Vector3(750, 260, 0);
+                cam.finalVelocity = new Vector3(600, 220, 0);
+                for (int frame = 0; frame < 120; frame++)
+                {
+                    Time.frameCount++;
+                    replacement.Tick();
+                    display.Tick();
+                    combat.Tick();
+                    cam.originShift = frame >= 60 && frame % 10 == 0
+                        ? new Vector3(1024, -2048, 3072) : new Vector3();
+                    cam.Tick();
+                    Canvas.Render();
+                    Near(cameraLock ? camera.viewportCenter : cam.finalNose, replacement.GetHUDCenter().position,
+                        "Rendered flight HUD stays aligned before and after repeated origin shifts");
+                    Near(cam.finalVelocity, replacement.Velocity.position,
+                        "Rendered velocity cue survives an overlay-root origin shift");
+                    Near(cam.finalNose, combat.Reticle.position,
+                        "Rendered weapon cue survives shared or separate overlay-root origin shifts");
+                    Check(display.Visible == ((cameraLock ? camera.viewportCenter.x : cam.finalNose.x) > 510),
+                        "Look-away visibility uses the restored screen-space frame");
+                }
+            }
+            combat.Canvas = new Canvas();
+            display.Canvas = new Canvas();
+            cam.originShift = new Vector3(1024, 2048, -3072);
+            foreach (var mode in new[] { RenderMode.WorldSpace, RenderMode.ScreenSpaceCamera })
+            {
+                replacement.Canvas.renderMode = combat.Canvas.renderMode = display.Canvas.renderMode = mode;
+                var roots = new[] { replacement.Canvas.transform, combat.Canvas.transform, display.Canvas.transform };
+                var before = new[] { roots[0].position, roots[1].position, roots[2].position };
+                var worldBefore = cam.SceneRoot.position;
+                cam.Tick();
+                for (int i = 0; i < roots.Length; i++)
+                    Near(before[i] - cam.originShift, roots[i].position, "Non-overlay canvases keep native origin translation");
+                Near(worldBefore - cam.originShift, cam.SceneRoot.position, "Scene world roots keep native origin translation");
+            }
+            replacement.Canvas.renderMode = combat.Canvas.renderMode = display.Canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            Canvas.Render();
+            foreach (var state in new[] { cam.cockpitState, new object() })
+            {
+                cam.currentState = state;
+                var before = replacement.Canvas.transform.position;
+                cam.Tick();
+                Near(before - cam.originShift, replacement.Canvas.transform.position, "Other views retain native canvas shifting");
+                Canvas.Render();
+            }
+            cam.currentState = cam.chaseState;
+            AceOption.Plugin.FlightHud.Value = false;
+            var optedOut = replacement.Canvas.transform.position;
+            cam.Tick();
+            Near(optedOut - cam.originShift, replacement.Canvas.transform.position, "HUD opt-out retains native canvas shifting");
+            Canvas.Render();
+            AceOption.Plugin.FlightHud.Value = true;
+            SceneSingleton<FlightHud>.i = null;
+            SceneSingleton<CombatHUD>.i = null;
+            SceneSingleton<HeadMountedDisplay>.i = null;
+            cam.Tick();
+            Check(true, "Unloaded HUDs do not prevent native origin shifting");
             Console.WriteLine("PASS: " + checks + " HUD alignment/order/live-toggle assertions with real Harmony hooks");
         }
         finally { harmony.UnpatchSelf(); }
@@ -277,6 +354,12 @@ namespace UnityEngine
     {
         public float x, y, z;
         public Vector3(float x, float y, float z) { this.x = x; this.y = y; this.z = z; }
+        public static Vector3 operator +(Vector3 a, Vector3 b) => new Vector3(a.x+b.x, a.y+b.y, a.z+b.z);
+        public static Vector3 operator -(Vector3 a, Vector3 b) => new Vector3(a.x-b.x, a.y-b.y, a.z-b.z);
+        public static bool operator ==(Vector3 a, Vector3 b) => a.x == b.x && a.y == b.y && a.z == b.z;
+        public static bool operator !=(Vector3 a, Vector3 b) => !(a == b);
+        public override bool Equals(object value) => value is Vector3 other && this == other;
+        public override int GetHashCode() => x.GetHashCode() ^ y.GetHashCode() ^ z.GetHashCode();
     }
     public struct Quaternion
     {
@@ -312,6 +395,27 @@ namespace UnityEngine
         }
     }
     public static class Time { public static int frameCount; }
+    public enum RenderMode { ScreenSpaceOverlay, ScreenSpaceCamera, WorldSpace }
+    public sealed class Canvas
+    {
+        private static readonly List<Canvas> all = new List<Canvas>();
+        public readonly Transform transform = new Transform();
+        public Vector3 layoutPosition;
+        public RenderMode renderMode;
+        public Canvas parentCanvas;
+        public Canvas rootCanvas => parentCanvas != null ? parentCanvas.rootCanvas : this;
+        public Canvas() { all.Add(this); }
+        public static void ShiftRoots(Vector3 shift)
+        {
+            foreach (var canvas in all) if (canvas.parentCanvas == null) canvas.transform.position -= shift;
+        }
+        public static void Render()
+        {
+            foreach (var canvas in all)
+                if (canvas.parentCanvas == null && canvas.renderMode == RenderMode.ScreenSpaceOverlay)
+                    canvas.transform.position = canvas.layoutPosition;
+        }
+    }
 }
 namespace UnityEngine.UI
 {
@@ -328,13 +432,15 @@ public static class SceneSingleton<T> { public static T i; }
 public sealed class FlightHud
 {
     private Aircraft aircraft;
+    private readonly Canvas canvas = new Canvas();
+    public Canvas Canvas => canvas;
     private readonly Transform center = new Transform();
     private readonly UnityEngine.UI.Image velocityVector = new UnityEngine.UI.Image();
     public Transform Velocity => velocityVector.transform;
     public bool isActiveAndEnabled = true;
     public int Updates;
     public float AircraftPitch;
-    public FlightHud(Aircraft aircraft) { this.aircraft = aircraft; Velocity.parent = center; }
+    public FlightHud(Aircraft aircraft) { this.aircraft = aircraft; center.parent = canvas.transform; Velocity.parent = center; }
     public Transform GetHUDCenter() => center;
     public void Tick() => Update();
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -356,6 +462,8 @@ public sealed class CameraStateManager
     public object currentState, chaseState = new object(), cockpitState = new object();
     public Camera mainCamera = new Camera();
     public Vector3 projectedNose, finalNose, projectedVelocity, finalVelocity;
+    public Vector3 originShift;
+    public readonly Transform SceneRoot = new Transform();
     public float projectedRoll, finalRoll;
     public void Tick() => LateUpdate();
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -365,10 +473,15 @@ public sealed class CameraStateManager
         projectedNose = finalNose;
         projectedRoll = finalRoll;
         projectedVelocity = finalVelocity;
+        CheckOriginShift();
     }
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void CheckOriginShift() { Canvas.ShiftRoots(originShift); SceneRoot.position -= originShift; }
 }
 public sealed class CombatHUD
 {
+    public Canvas Canvas = new Canvas();
+    public Canvas GetComponentInParent<T>(bool includeInactive) => Canvas;
     public Aircraft aircraft;
     public bool isActiveAndEnabled = true;
     public int Updates;
@@ -384,6 +497,8 @@ public sealed class CombatHUD
 }
 public sealed class HeadMountedDisplay
 {
+    public Canvas Canvas = new Canvas();
+    public Canvas GetComponentInParent<T>(bool includeInactive) => Canvas;
     public bool isActiveAndEnabled = true;
     public int Updates;
     public bool Visible;
@@ -394,6 +509,6 @@ public sealed class HeadMountedDisplay
         HudAlignmentTests.Events.Add("look-away");
         Updates++;
         var hud = SceneSingleton<FlightHud>.i;
-        if (hud != null) Visible = hud.GetHUDCenter().position.x > 500;
+        if (hud != null) Visible = hud.GetHUDCenter().position.x > Canvas.rootCanvas.transform.position.x + 500;
     }
 }

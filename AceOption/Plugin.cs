@@ -6,7 +6,7 @@ using HarmonyLib;
 
 namespace AceOption;
 
-[BepInPlugin(Id, "Ace Option", "1.0.0")]
+[BepInPlugin(Id, "Ace Option", "1.0.1")]
 [BepInDependency("com.bepis.bepinex.configurationmanager", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInIncompatibility("ChaseCamPlus")]
 [BepInIncompatibility("Thabuki.NuclearOption.CasualQoL")]
@@ -19,12 +19,11 @@ public sealed class Plugin : BaseUnityPlugin
     public static ConfigEntry<bool> VirtualJoystick, FlightHud, Map, TurretAim,
         HudFollowsCamera, PitchLadder, Waterline, LeftInstruments, RightInstruments, Compass,
         VirtualJoystickIndicator, AlwaysFreeLook, FixWeaponFoV, HitSoundOutsideCockpit, SmoothButtonYaw,
-        ThrottleChordFlightAssist, YawChordAutoLevel, ThrottleDownGroundBrakes, TargetCycling, ControllerVibration, VibrationWeapons,
-        VibrationDamage, VibrationGForce, CameraAdjustments, TargetFocusEnabled, RememberCameraView, MissileFollowCamera;
+        ThrottleChordFlightAssist, YawChordAutoLevel, ThrottleDownGroundBrakes, TargetCycling,
+        CameraAdjustments, TargetFocusEnabled, RememberCameraView, MissileFollowCamera;
     internal static ConfigEntry<FlightCameraView> LastCameraView;
     public static ConfigEntry<float> FreeLookSensitivity, CameraDistance, PlaneVerticalOffset,
-        TargetFocusHoldDelay, AutoCenterDelay, AutoCenterSpeed, FreeLookDeadzone, YawRiseTime, YawReturnTime,
-        VibrationIntensity;
+        TargetFocusHoldDelay, AutoCenterDelay, AutoCenterSpeed, FreeLookDeadzone, YawRiseTime, YawReturnTime;
 
     // Retain the serialized input names so existing controller bindings remain usable.
     public const string ACTION_TOGGLE = "ChaseCamPlus::ToggleChase";
@@ -44,7 +43,7 @@ public sealed class Plugin : BaseUnityPlugin
         AutoCenterDelay = Number("AutoCenterDelay", .15f, 0f, 30f, "Seconds without look input before the chase camera smoothly returns to center. Requires Enable Free Look to be enabled. 0 starts the smooth return immediately; the existing 'Center' action resets the view instantly.");
         AutoCenterSpeed = Number("AutoCenterSpeed", 5f, .1f, 20f, "How quickly the chase camera returns to center after Auto-Center Delay. 5 keeps the original return speed; lower values return more slowly and higher values return faster. Still respects the game's view smoothing. Requires Enable Free Look. Applies immediately; manual look smoothing and the instant 'Center' action are unchanged.");
 
-        RememberCameraView = Flag("Other", "RememberCameraView", true, "Remember your last cockpit or chase view when entering an aircraft, including in a new match or after restarting the game. Choose either view with the normal camera controls or Chase Cam Toggle. Spectator views and death/ejection do not replace the saved choice. Disable to use the game's normal cockpit start.");
+        RememberCameraView = Flag("Other", "RememberCameraView", false, "Remember your last cockpit or chase view when entering an aircraft, including in a new match or after restarting the game. Disabled by default to use the game's normal cockpit start. Enable to save either view chosen with the normal camera controls or Chase Cam Toggle. Spectator views and death/ejection do not replace the saved choice.");
         LastCameraView = Config.Bind("Other", "LastCameraView", FlightCameraView.Cockpit,
             ConfigMenu.Describe("LastCameraView", "Last cockpit or chase view, saved automatically by Remember Camera View."));
         CameraAdjustments = Flag("Other", "CameraAdjustments", false, "Apply Camera Distance and Aircraft Vertical Offset in chase view. Disabled by default to retain the current camera mode's distance and framing. Enable to apply the suggested or saved slider values; your slider values are retained when disabled.");
@@ -85,16 +84,9 @@ public sealed class Plugin : BaseUnityPlugin
             "Tap the existing 'Mark Target' control to cycle one visible, detected enemy at a time, preferring targets suited to the selected weapon. Cycling needs no new binding. Disable to restore additive marking without clearing current targets. Long holds that never activate focus keep bulk marking; full-map controls are unchanged.\nOptional hold-to-focus requires Enable Target Focus and binding 'Chase Target Focus (Hold)' in the game's Flight Controls (unbound by default). It can share the 'Mark Target' button; adjust its delay under Target Focus Hold Delay (seconds).");
         TurretAim = Flag("Chase HUD", "TurretAim", true, "Make manual turrets without an assigned target follow the chase camera, including its return to center. Disable to aim along the aircraft nose instead. Automatic aiming at assigned targets takes priority. Uses existing turret controls. Turn on Enable Free Look to look around manually; Enable Target Focus controls hold-to-focus separately.");
 
-        ControllerVibration = Flag("Controller Feedback", "ControllerVibration", false,
-            "Vibrate the last active joystick or gamepad during weapon fire, damage and sustained G-force. Requires a controller and input backend that support standard rumble; no new binding is needed. Disabled by default. Feedback stops in menus, on pause or focus loss, after death and when leaving the aircraft.");
-        VibrationIntensity = Config.Bind("Controller Feedback", "VibrationIntensity", .6f,
-            ConfigMenu.Describe("VibrationIntensity", "Overall controller vibration strength, from 0 (silent) to 1 (full strength). Requires Enable Controller Vibration and a controller that supports rumble.", new AcceptableValueRange<float>(0, 1)));
-        VibrationWeapons = Flag("Controller Feedback", "VibrationWeapons", true, "Short vibration pulses for gunfire and stronger pulses for ordnance launches from your aircraft. Requires Enable Controller Vibration and Vibration Strength above 0. Responds to actual firing with existing controls; no new binding is needed.");
-        VibrationDamage = Flag("Controller Feedback", "VibrationDamage", true, "Vibrate when a part of your aircraft loses hit points. Requires Enable Controller Vibration and Vibration Strength above 0.");
-        VibrationGForce = Flag("Controller Feedback", "VibrationGForce", true, "Add gentle sustained vibration above 4 positive G or below -2 G. Requires Enable Controller Vibration and Vibration Strength above 0. This is feedback only; aircraft handling and pilot physiology stay unchanged.");
         patches = new Harmony(Id);
         patches.PatchAll(typeof(Plugin).Assembly);
-        Logger.LogInfo("Ace Option 1.0.0 loaded");
+        Logger.LogInfo("Ace Option 1.0.1 loaded");
     }
 
     private ConfigEntry<bool> Flag(string section, string key, bool value, string help) =>
@@ -112,7 +104,6 @@ public sealed class Plugin : BaseUnityPlugin
         FlightAssistCommands.CheckInterrupted();
         AutoLevelCommands.CheckInterrupted();
         GroundBrakeCommands.CheckInterrupted();
-        ControllerFeedback.Update();
     }
 
     private void LateUpdate() => FlightStatusHud.Refresh();
@@ -124,7 +115,6 @@ public sealed class Plugin : BaseUnityPlugin
         FlightAssistCommands.Reset();
         AutoLevelCommands.Reset();
         GroundBrakeCommands.Reset();
-        ControllerFeedback.Reset();
         FlightStatusHud.Hide();
     }
 
@@ -135,7 +125,6 @@ public sealed class Plugin : BaseUnityPlugin
     private void OnDestroy()
     {
         MissileCamera.Release();
-        ControllerFeedback.Reset();
         FlightAssistCommands.Reset();
         GroundBrakeCommands.Reset();
         AutoLevelCommands.Reset();

@@ -6,7 +6,7 @@ namespace AceOption.Helpers;
 internal static class ConfigMenu
 {
     private const string Look = "Free Look", Camera = "Chase Camera", Hud = "Chase HUD",
-        Flight = "Flight Controls", Combat = "Combat", Feedback = "Vibration";
+        Flight = "Flight Controls", Combat = "Combat";
 
     internal static ConfigDescription Describe(string key, string help, AcceptableValueBase range = null)
     {
@@ -50,11 +50,6 @@ internal static class ConfigMenu
             "TargetCycling" => new ConfigurationManagerAttributes(Combat, "Single-Target Cycling", 40),
             "TurretAim" => new ConfigurationManagerAttributes(Combat, "Aim Turrets with Camera", 30),
 
-            "ControllerVibration" => new ConfigurationManagerAttributes(Feedback, "Enable Controller Vibration", 50),
-            "VibrationIntensity" => new ConfigurationManagerAttributes(Feedback, "Vibration Strength", 40, "ControllerVibration", "Controller Feedback"),
-            "VibrationWeapons" => new ConfigurationManagerAttributes(Feedback, "Weapon Feedback", 30, "ControllerVibration", "Controller Feedback"),
-            "VibrationDamage" => new ConfigurationManagerAttributes(Feedback, "Damage Feedback", 20, "ControllerVibration", "Controller Feedback"),
-            "VibrationGForce" => new ConfigurationManagerAttributes(Feedback, "G-Force Feedback", 10, "ControllerVibration", "Controller Feedback"),
             _ => null
         };
         return menu == null ? new ConfigDescription(help, range) : new ConfigDescription(help, range, menu);

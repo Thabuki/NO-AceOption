@@ -16,6 +16,8 @@ internal static class HudAlignment
         AccessTools.FieldRefAccess<FlightHud, Aircraft>("aircraft");
     private static readonly AccessTools.FieldRef<FlightHud, UnityEngine.UI.Image> velocityVector =
         AccessTools.FieldRefAccess<FlightHud, UnityEngine.UI.Image>("velocityVector");
+    private static readonly AccessTools.FieldRef<FlightHud, Canvas> canvas =
+        AccessTools.FieldRefAccess<FlightHud, Canvas>("canvas");
     private static int cameraFrame = -1, deferredFrame = -1, lookAwayFrame = -1;
     private static CombatHUD deferredCombatHud;
     private static HeadMountedDisplay deferredLookAway;
@@ -25,6 +27,46 @@ internal static class HudAlignment
         hud.isActiveAndEnabled && cam != null && cam.isActiveAndEnabled &&
         cam.currentState == cam.chaseState && cam.mainCamera != null && cam.followingUnit != null &&
         aircraft(hud) == cam.followingUnit && GameManager.IsLocalAircraft(cam.followingUnit);
+
+    // FloatingOrigin translates every scene root. Screen-space overlay canvases
+    // are restored by Unity for rendering, but our late world-to-screen writes
+    // must already use that restored coordinate frame. Otherwise the subsequent
+    // canvas restoration moves the HUD and weapon cues a second time.
+    internal readonly struct OverlayPosition
+    {
+        private readonly Transform root;
+        private readonly Vector3 position;
+        internal OverlayPosition(Canvas owner)
+        {
+            var overlay = owner != null ? owner.rootCanvas : null;
+            root = overlay != null && overlay.renderMode == RenderMode.ScreenSpaceOverlay ? overlay.transform : null;
+            position = root != null ? root.position : default;
+        }
+        internal void Restore()
+        {
+            if (root != null && root.position != position) root.position = position;
+        }
+    }
+
+    internal readonly struct OriginShiftState
+    {
+        private readonly OverlayPosition flight, combat, lookAway;
+        internal OriginShiftState(FlightHud hud, CombatHUD combatHud, HeadMountedDisplay display)
+        {
+            flight = new OverlayPosition(canvas(hud));
+            combat = new OverlayPosition(combatHud != null ? combatHud.GetComponentInParent<Canvas>(true) : null);
+            lookAway = new OverlayPosition(display != null ? display.GetComponentInParent<Canvas>(true) : null);
+        }
+        internal void Restore() { flight.Restore(); combat.Restore(); lookAway.Restore(); }
+    }
+
+    internal static OriginShiftState BeforeOriginShift(CameraStateManager cam)
+    {
+        var hud = SceneSingleton<FlightHud>.i;
+        return OwnChaseHud(hud, cam)
+            ? new OriginShiftState(hud, SceneSingleton<CombatHUD>.i, SceneSingleton<HeadMountedDisplay>.i)
+            : default;
+    }
 
     internal static void AfterCamera(CameraStateManager cam)
     {
