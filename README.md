@@ -181,11 +181,15 @@ repository files; the installable mod is the separately attached ZIP.
 
 1. Close Nuclear Option and install BepInEx 5 if needed.
 2. Remove older copies of the mod and any conflicting camera mods.
-3. Extract the package into the game folder. The plugin belongs at
-   `BepInEx/plugins/AceOption/AceOption.dll`.
+3. Extract the ZIP to a temporary folder. Copy only the extracted `BepInEx`
+   folder into the game folder, merging it with the existing `BepInEx` folder.
+   The final plugin path is `BepInEx/plugins/AceOption/AceOption.dll`.
 4. Launch the game and configure Ace Option through BepInEx Configuration
    Manager or `BepInEx/config/Thabuki.NuclearOption.AceOption.cfg`.
 5. Assign the optional custom actions in the game's Flight Controls.
+
+Keep the README, guide, license notices and build information with your
+extracted download for reference.
 
 Existing Ace Option settings and saved action bindings carry over on upgrade.
 Camera, HUD, audio and vibration run locally. Input actions, weapon firing

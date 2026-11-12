@@ -18,13 +18,15 @@ downloads contain source files, not the separately built plugin.
    Manager.
 3. Remove older copies of the mod and any conflicting camera mods from the
    plugins directory.
-4. Extract the package into the game folder. The plugin path is
-   `BepInEx/plugins/AceOption/AceOption.dll`.
+4. Extract the ZIP to a temporary folder. Copy only the extracted `BepInEx`
+   folder into the game folder, merging it with the existing `BepInEx` folder.
+   The final plugin path is `BepInEx/plugins/AceOption/AceOption.dll`.
 5. Launch the game, configure Ace Option and assign any custom actions you
    want in Flight Controls.
 
-The package contains the mod, documentation and license notices. BepInEx and
-the installed game's assemblies supply the runtime dependencies.
+Keep the README, guide, license notices and build information with your
+extracted download for reference. BepInEx and the installed game's assemblies
+supply the runtime dependencies.
 
 ### Configuration
 
