@@ -8,9 +8,9 @@ The README lists every visible setting in custom-menu order.
 
 ## Install and upgrade
 
-Get the built `AceOption-<version>.zip` asset from
-[GitHub Releases](https://github.com/Thabuki/NO-AceOption/releases) when
-available. The automatic **Source code (zip)** and **Source code (tar.gz)**
+Get the built `AceOption-1.0.1.zip` asset from the
+[1.0.1 release](https://github.com/Thabuki/NO-AceOption/releases/tag/v1.0.1).
+The automatic **Source code (zip)** and **Source code (tar.gz)**
 downloads contain source files, not the separately built plugin.
 
 1. Close Nuclear Option.
@@ -34,13 +34,6 @@ Settings are saved in `BepInEx/config/Thabuki.NuclearOption.AceOption.cfg`.
 Configuration Manager applies changes while the game runs. Close the game
 before editing the config manually. Existing Ace Option values carry over on
 upgrade. Defaults apply to missing keys and new files.
-
-Controller vibration has been removed, including weapon, damage and G-force
-feedback. Its five settings and Vibration menu group are no longer available.
-Old `[Controller Feedback]` entries are ignored, even if previously enabled;
-you can remove that section with the game closed. Offline checks cover the
-removal and the remaining menu layout. In-game menu and controller checks
-remain pending.
 
 The visible menu groups are Free Look, Chase Camera, Chase HUD, Flight
 Controls and Combat. Saved sections also include `Other` and `Virtual
@@ -176,13 +169,6 @@ world points. The velocity cue keeps its native screen position when the
 camera-centered layout moves or levels the HUD parent. Both alignment
 corrections apply automatically while their chase HUD features are in use.
 
-The delayed third-person HUD flicker reported in 1.0.0 was not reproduced in
-a player retest of 1.0.1. That report supports the correction; coverage of
-longer sessions and other configurations remains pending. Check instruments
-and aiming markers after flying for several minutes, looking around and
-returning to chase from the cockpit. Offline checks and this limited retest
-do not establish that every flicker case is resolved.
-
 **AUTO-LEVEL** appears near the top of the HUD while the yaw chord levels the
 wings and nose. **FLIGHT ASSIST OFF** appears there while the throttle chord
 temporarily disables native flight assist. Both use the native HUD font at
@@ -192,9 +178,6 @@ indicator; these labels report the held shortcuts rather than the assist
 state after release. Throttle-chord assist changes suppress their native
 timed on/off messages. Ordinary assist toggles and unrelated action reports
 use the native message feed. Ground braking uses the native brake icon.
-
-Readability of the smaller labels still needs an in-game check in cockpit
-and chase view, including both shortcuts held together.
 
 ## Flight controls
 

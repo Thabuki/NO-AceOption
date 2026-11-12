@@ -5,7 +5,7 @@ customizable HUD, and an Ace Combat-inspired flying experience. Requires
 **BepInEx 5**. Configure the mod through **BepInEx Configuration Manager** or
 its config file.
 
-Current version: **1.0.1**.
+Current version: **1.0.1**. [Download the release](https://github.com/Thabuki/NO-AceOption/releases/tag/v1.0.1).
 
 ## Features
 
@@ -160,16 +160,11 @@ These behaviors have no separate menu switch.
 - **Dependent menu controls** gray out child editors and reset buttons while
   their parent is disabled, retaining saved values for re-enabling.
 
-The 1.0.1 canvas correction has offline regression coverage, and a player
-retest did not reproduce the earlier delayed third-person HUD flicker.
-Broader gameplay coverage remains pending; see the
-[Chase HUD notes](docs/GUIDE.md#chase-hud).
-
 ## Install and upgrade
 
-Download the built `AceOption-<version>.zip` asset from
-[GitHub Releases](https://github.com/Thabuki/NO-AceOption/releases) when a
-release is available. GitHub's automatic **Source code** downloads contain the
+Download the built `AceOption-1.0.1.zip` asset from the
+[1.0.1 release](https://github.com/Thabuki/NO-AceOption/releases/tag/v1.0.1).
+GitHub's automatic **Source code** downloads contain the
 repository files; the installable mod is the separately attached ZIP.
 
 1. Close Nuclear Option and install BepInEx 5 if needed.
@@ -185,9 +180,6 @@ Keep the README, guide, license notices and build information with your
 extracted download for reference.
 
 Existing Ace Option settings and saved action bindings carry over on upgrade.
-Controller vibration and its settings have been removed. Old
-`[Controller Feedback]` config entries are ignored and can be deleted with
-the game closed.
 
 Camera, HUD and audio run locally. Input actions, weapon firing and native
 turret targeting use the game's existing simulation and replication.

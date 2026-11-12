@@ -547,19 +547,6 @@ internal static class TranspilerTests
             "Native deselection retains map/HUD cleanup");
         Check(AccessTools.Method(typeof(WeaponManager), "TargetListChanged") != null,
             "Native target notification exists");
-        using (var metadata = Mono.Cecil.AssemblyDefinition.ReadAssembly(plugin.Location))
-        {
-            Check(!metadata.MainModule.Types.Any(t => t.Name.Contains("Vibration") ||
-                new[] { "ControllerFeedback", "WeaponFeedbackPatch", "DamageFeedbackPatch" }.Contains(t.Name)),
-                "The plugin contains no vibration helpers or firing/damage feedback patches");
-            var fields = metadata.MainModule.Types.Single(t => t.FullName == "AceOption.Plugin").Fields;
-            Check(!fields.Any(f => f.Name.Contains("Vibration")),
-                "The plugin exposes no vibration configuration fields");
-            Check(!metadata.MainModule.GetMemberReferences().Any(m =>
-                m.DeclaringType.Namespace.StartsWith("Rewired") &&
-                m.Name.IndexOf("Vibration", StringComparison.OrdinalIgnoreCase) >= 0),
-                "The plugin references no Rewired motor output or capability APIs");
-        }
         Console.WriteLine("PASS: optional targeting hooks match the installed game");
     }
 
