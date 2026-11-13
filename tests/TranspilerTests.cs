@@ -103,6 +103,7 @@ internal static class TranspilerTests
         VerifyPatch(plugin, "InitialCameraPatch", typeof(Aircraft), "SetupLocalPlayerAndUI", 1, "InitialState");
         VerifyPatch(plugin, "MissileFirePatch", typeof(PilotPlayerState), "PlayerControls", 1, "Fire");
         VerifyCameraPreferenceContracts(plugin);
+        VerifyTargetFocusContracts(plugin);
         VerifyConfigMenuContracts(plugin);
         VerifyHudAlignmentContracts(plugin);
         VerifyYawContracts(plugin);
@@ -548,6 +549,39 @@ internal static class TranspilerTests
         Check(AccessTools.Method(typeof(WeaponManager), "TargetListChanged") != null,
             "Native target notification exists");
         Console.WriteLine("PASS: optional targeting hooks match the installed game");
+    }
+
+    private static void VerifyTargetFocusContracts(Assembly plugin)
+    {
+        var tracked = AccessTools.Method(typeof(FactionHQ), "IsTargetBeingTracked", new[] { typeof(Unit) });
+        var known = AccessTools.Method(typeof(FactionHQ), "TryGetKnownPosition");
+        Check(tracked != null && tracked.ReturnType == typeof(bool), "Native faction tracking gate is available");
+        Check(known != null && known.ReturnType == typeof(bool) && known.GetParameters().Length == 2 &&
+            known.GetParameters()[0].ParameterType == typeof(Unit) && known.GetParameters()[1].IsOut &&
+            known.GetParameters()[1].ParameterType.GetElementType().Name == "GlobalPosition",
+            "Native known-position API supplies an authorized global position");
+        var type = plugin.GetType("AceOption.Helpers.TargetFocus", true);
+        var resolve = ReadMetadataInstructions(AccessTools.Method(type, "TryGetPosition"));
+        Func<CodeInstruction, string, string, bool> calls = (code, owner, name) =>
+            code.operand is Mono.Cecil.MethodReference method && method.DeclaringType.Name == owner && method.Name == name;
+        int gate = resolve.FindIndex(code => calls(code, "FactionHQ", "IsTargetBeingTracked"));
+        int position = resolve.FindIndex(code => calls(code, "FactionHQ", "TryGetKnownPosition"));
+        Check(gate >= 0 && position > gate, "Focus checks tracking before resolving a known position");
+        Check(resolve.Skip(gate + 1).Take(position - gate - 1).Any(code => code.opcode.FlowControl == FlowControl.Cond_Branch),
+            "Failed tracking bypasses the known-position lookup");
+        Check(resolve.Any(code => calls(code, "GlobalPositionExtensions", "ToLocalPosition")),
+            "Authorized global positions use the native floating-origin conversion");
+        Check(!resolve.Any(code => code.operand is Mono.Cecil.MethodReference method &&
+            (method.Name == "get_transform" || method.Name == "get_position")),
+            "The focus position resolver never reads a target transform");
+        foreach (string name in new[] { "GetTarget", "Apply" })
+            Check(ReadMetadataInstructions(AccessTools.Method(type, name)).Any(code => calls(code, "TargetFocus", "TryGetPosition")),
+                name + " revalidates faction tracking and position");
+        var nativeTracking = ReadMetadataInstructions(tracked);
+        Check(nativeTracking.Any(code => code.operand is Mono.Cecil.FieldReference field && field.Name == "lastSpottedTime") &&
+            nativeTracking.Any(code => code.opcode == OpCodes.Ldc_R4 && Equals(code.operand, 4f)),
+            "The installed game's tracking gate retains its native four-second freshness interval");
+        Console.WriteLine("PASS: target focus uses native faction tracking and known-position contracts");
     }
 
     private static void VerifyCameraPreferenceContracts(Assembly plugin)

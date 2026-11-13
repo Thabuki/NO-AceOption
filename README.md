@@ -5,7 +5,7 @@ customizable HUD, and an Ace Combat-inspired flying experience. Requires
 **BepInEx 5**. Configure the mod through **BepInEx Configuration Manager** or
 its config file.
 
-Current version: **1.0.1**. [Download the release](https://github.com/Thabuki/NO-AceOption/releases/tag/v1.0.1).
+Current version: **1.0.2**. [Download the release](https://github.com/Thabuki/NO-AceOption/releases/tag/v1.0.2).
 
 ## Features
 
@@ -48,6 +48,11 @@ Configuration Manager to use the new default.
 Native chase zoom and camera presets are available. Release target focus to
 return to chase. With free look enabled, Center cancels focus until the focus
 button is released.
+
+Target Focus requires current faction tracking and follows your faction's known
+target position. When tracking is lost, the camera returns smoothly to chase,
+leaving the target marked. Focus can resume if your faction reacquires the
+contact while the action remains held. The game's normal tracking timeout applies.
 
 ### Chase HUD
 
@@ -162,8 +167,8 @@ These behaviors have no separate menu switch.
 
 ## Install and upgrade
 
-Download the built `AceOption-1.0.1.zip` asset from the
-[1.0.1 release](https://github.com/Thabuki/NO-AceOption/releases/tag/v1.0.1).
+Download the built `AceOption-1.0.2.zip` asset from the
+[1.0.2 release](https://github.com/Thabuki/NO-AceOption/releases/tag/v1.0.2).
 GitHub's automatic **Source code** downloads contain the
 repository files; the installable mod is the separately attached ZIP.
 

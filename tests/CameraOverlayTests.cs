@@ -83,12 +83,13 @@ namespace UnityEngine
     }
     public class Transform
     {
+        public int PositionReads;
         public Transform parent;
         public Vector3 localPosition;
         public Quaternion localRotation = Quaternion.identity;
         public Vector3 position
         {
-            get => parent == null ? localPosition : parent.position + parent.rotation * localPosition;
+            get { PositionReads++; return parent == null ? localPosition : parent.position + parent.rotation * localPosition; }
             set => localPosition = parent == null ? value : Quaternion.Inverse(parent.rotation) * (value - parent.position);
         }
         public Quaternion rotation
@@ -120,7 +121,34 @@ namespace UnityEngine
     public class Rigidbody { public Vector3 velocity; }
 }
 public class UnitDefinition { public float length = 16, width = 12; }
-public class Unit { public bool disabled; public Transform transform = new Transform(); public UnitDefinition definition = new UnitDefinition(); }
+public class Unit
+{
+    public bool disabled;
+    public Transform transform = new Transform();
+    public UnitDefinition definition = new UnitDefinition();
+    public FactionHQ NetworkHQ = new FactionHQ();
+}
+public struct GlobalPosition { public Vector3 Position; }
+public static class GlobalPositionExtensions
+{
+    public static Vector3 Origin;
+    public static Vector3 ToLocalPosition(this GlobalPosition position) => position.Position + Origin;
+}
+public class FactionHQ
+{
+    public HashSet<Unit> Untracked = new HashSet<Unit>(), Unknown = new HashSet<Unit>();
+    public Dictionary<Unit, Vector3> Positions = new Dictionary<Unit, Vector3>();
+    public int KnownPositionRequests;
+    public bool IsTargetBeingTracked(Unit unit) => unit.NetworkHQ == this || !Untracked.Contains(unit);
+    public bool TryGetKnownPosition(Unit unit, out GlobalPosition position)
+    {
+        KnownPositionRequests++;
+        position = new GlobalPosition();
+        if (Unknown.Contains(unit)) return false;
+        position.Position = Positions.TryGetValue(unit, out var known) ? known : unit.transform.position;
+        return true;
+    }
+}
 public class Aircraft : Unit { }
 public class CameraStateManager
 {
@@ -171,6 +199,83 @@ internal static class CameraOverlayTests
         Vector3 point = Quaternion.Inverse(cam.transform.rotation)
             * (cam.followingUnit.transform.position - cam.transform.position);
         return 0.5f + point.y / point.z / (2f * (float)Math.Tan(cam.mainCamera.fieldOfView * Math.PI / 360));
+    }
+    private static void DetectionTests()
+    {
+        TargetFocus.Reset();
+        var aircraft = new Aircraft();
+        var faction = aircraft.NetworkHQ;
+        var target = new Unit();
+        target.transform.position = new Vector3(-1000, 100, 0);
+        faction.Positions[target] = new Vector3(1000, 0, 0);
+        var cam = new CameraStateManager { followingUnit = aircraft };
+        cam.currentState = cam.chaseState;
+        GameManager.local = aircraft;
+        var hud = new CombatHUD { aircraft = aircraft };
+        hud.targets.Add(target);
+        SceneSingleton<CombatHUD>.i = hud;
+        faction.Untracked.Add(target);
+        Check(TargetFocus.GetTarget(cam, true, .3f, .3f) == null,
+            "A retained stale mark cannot start focus even when a known position exists");
+        Check(!TargetFocus.Apply(cam, target, 1f / 60) && !TargetFocus.Active,
+            "Applying an untracked target directly cannot start focus");
+        Check(faction.KnownPositionRequests == 0 && target.transform.PositionReads == 0,
+            "Untracked targets never resolve a position or read their live transform");
+
+        faction.Untracked.Clear();
+        Check(TargetFocus.GetTarget(cam, true, 0, .3f) == target,
+            "Faction reacquisition permits focus while the action remains held");
+        Action<Unit> frame = unit => {
+            cam.transform.SetPositionAndRotation(new Vector3(0, 3, -20), Quaternion.identity);
+            TargetFocus.Apply(cam, unit, 1f / 60);
+        };
+        for (int i = 0; i < 240; i++) frame(target);
+        Near((faction.Positions[target] - cam.transform.position).normalized, cam.transform.forward,
+            "Focus aims at the faction-known position even when the live position differs");
+        faction.Positions[target] = new Vector3(0, 0, -1000);
+        GlobalPositionExtensions.Origin = new Vector3(250, 0, 100);
+        for (int i = 0; i < 240; i++) frame(target);
+        Near((faction.Positions[target] + GlobalPositionExtensions.Origin - cam.transform.position).normalized,
+            cam.transform.forward, "Focus refreshes authorized positions and converts the current floating origin");
+        Check(target.transform.PositionReads == 0, "Tracked focus never bypasses faction position data for a live transform");
+        GlobalPositionExtensions.Origin = Vector3.zero;
+
+        // Detection can change after selection and before camera application.
+        var selected = TargetFocus.GetTarget(cam, true, 0, .3f);
+        faction.Untracked.Add(target);
+        int requests = faction.KnownPositionRequests;
+        for (int i = 0; i < 240; i++)
+        {
+            target.transform.position = new Vector3(i * 100, 200, -i * 200);
+            Check(TargetFocus.GetTarget(cam, true, 1f / 60, .3f) == null,
+                "A held action cannot select a lost contact");
+            frame(selected);
+        }
+        Check(!TargetFocus.Active, "Detection loss smoothly finishes returning to chase even with a retained target reference");
+        Near(new Vector3(0, 3, -20), cam.transform.position, "Detection loss restores chase position");
+        Near(Vector3.forward, cam.transform.forward, "Detection loss restores chase direction");
+        Check(faction.KnownPositionRequests == requests && target.transform.PositionReads == 0,
+            "Moving a lost target never affects camera return or performs position lookups");
+        Check(hud.targets.Count == 1 && hud.targets[0] == target,
+            "Ending camera focus preserves the native marked-target list");
+
+        faction.Untracked.Clear();
+        faction.Unknown.Add(target);
+        Check(TargetFocus.GetTarget(cam, true, 0, .3f) == null && !TargetFocus.Apply(cam, target, 1f / 60),
+            "A tracked target without an authorized known position fails closed");
+        faction.Unknown.Clear();
+        aircraft.NetworkHQ = null;
+        Check(TargetFocus.GetTarget(cam, true, 0, .3f) == null && !TargetFocus.Apply(cam, target, 1f / 60),
+            "An absent player faction fails closed");
+        aircraft.NetworkHQ = faction;
+        Check(TargetFocus.GetTarget(cam, true, 0, .3f) == target,
+            "Restoring faction data allows a held focus to resume");
+        target.disabled = true;
+        Check(!TargetFocus.Apply(cam, target, 1f / 60), "A target disabled after selection cannot activate focus");
+        target.disabled = false;
+        hud.targets.Insert(0, aircraft);
+        Check(TargetFocus.GetTarget(cam, true, 0, .3f) == null, "The local aircraft cannot focus itself");
+        TargetFocus.Reset();
     }
     public static void Main()
     {
@@ -389,6 +494,7 @@ internal static class CameraOverlayTests
         cam.transform.localPosition = new Vector3(42, 0, 0);
         ChasePlacement.RestoreForUpdate(cam);
         Near(new Vector3(42, 0, 0), cam.transform.position, "Reparented camera must discard stale baseline");
+        DetectionTests();
         Console.WriteLine("PASS: " + checks + " camera overlay assertions (stand-in math and transforms)");
     }
 }

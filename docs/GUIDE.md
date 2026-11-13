@@ -3,13 +3,13 @@
 [README and full feature list](../README.md)
 
 Ace Option adds configurable chase-camera, HUD, input and combat features
-to Nuclear Option. This guide describes the current 1.0.1 behavior.
+to Nuclear Option. This guide describes the current 1.0.2 behavior.
 The README lists every visible setting in custom-menu order.
 
 ## Install and upgrade
 
-Get the built `AceOption-1.0.1.zip` asset from the
-[1.0.1 release](https://github.com/Thabuki/NO-AceOption/releases/tag/v1.0.1).
+Get the built `AceOption-1.0.2.zip` asset from the
+[1.0.2 release](https://github.com/Thabuki/NO-AceOption/releases/tag/v1.0.2).
 The automatic **Source code (zip)** and **Source code (tar.gz)**
 downloads contain source files, not the separately built plugin.
 
@@ -109,6 +109,14 @@ action for Target Focus Hold Delay (seconds). The delay ranges from 0.3 to 2
 seconds. Focus follows the newest marked target, including targets above or
 behind the aircraft. Release to return smoothly to chase. With free look
 enabled, Center cancels focus until the focus action is released.
+
+Focus requires the game to consider the contact currently tracked by your
+faction and uses that faction's known target position. Detection shared by
+other units in your faction counts; this is not limited to your aircraft's
+own sensors. The game's normal tracking timeout applies. Losing tracking or
+known-position data returns the camera smoothly to chase without clearing the
+mark. If the contact is reacquired while the action remains held, focus resumes.
+Missing faction data prevents focus.
 
 Chase Target Focus (Hold) can share the Mark Target button. Flight marking is
 handled on release. A tap marks one target, and a hold that activates focus

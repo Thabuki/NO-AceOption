@@ -6,7 +6,7 @@ using HarmonyLib;
 
 namespace AceOption;
 
-[BepInPlugin(Id, "Ace Option", "1.0.1")]
+[BepInPlugin(Id, "Ace Option", "1.0.2")]
 [BepInDependency("com.bepis.bepinex.configurationmanager", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInIncompatibility("ChaseCamPlus")]
 [BepInIncompatibility("Thabuki.NuclearOption.CasualQoL")]
@@ -49,7 +49,7 @@ public sealed class Plugin : BaseUnityPlugin
         CameraAdjustments = Flag("Other", "CameraAdjustments", false, "Apply Camera Distance and Aircraft Vertical Offset in chase view. Disabled by default to retain the current camera mode's distance and framing. Enable to apply the suggested or saved slider values; your slider values are retained when disabled.");
         CameraDistance = Number("CameraDistance", .65f, .25f, 2f, "Adjust chase camera distance, including while looking around or focusing a target. Requires Enable Camera Adjustments. 1 uses the original distance; lower values bring the camera closer.");
         PlaneVerticalOffset = Number("PlaneVerticalOffset", -.15f, -.35f, .35f, "Move the aircraft up or down in the chase view, as a fraction of screen height. Requires Enable Camera Adjustments. Negative values place it lower. Target focus centers the target instead.");
-        TargetFocusEnabled = Flag("Other", "TargetFocusEnabled", false, "Hold 'Chase Target Focus (Hold)' to follow your newest marked target after Target Focus Hold Delay (seconds); release to return to chase. Disabled by default. Works independently of Enable Camera Adjustments and Enable Free Look. Disabling ends focus and preserves your delay and binding.\nRequired binding: assign 'Chase Target Focus (Hold)' in the game's Flight Controls; this custom action starts unbound. It can share the 'Mark Target' button. Holds that activate focus add no mark; unused long holds keep bulk marking.");
+        TargetFocusEnabled = Flag("Other", "TargetFocusEnabled", false, "Hold 'Chase Target Focus (Hold)' to follow your newest marked target after Target Focus Hold Delay (seconds); release to return to chase. Requires current faction tracking and uses your faction's known target position. Losing detection returns smoothly to chase. Disabled by default. Works independently of Enable Camera Adjustments and Enable Free Look. Disabling ends focus and preserves your delay and binding.\nRequired binding: assign 'Chase Target Focus (Hold)' in the game's Flight Controls; this custom action starts unbound. It can share the 'Mark Target' button. Holds that activate focus add no mark; unused long holds keep bulk marking.");
         TargetFocusHoldDelay = Number("TargetFocusHoldDelay", .3f, .3f, 2f, "Seconds to hold before the chase camera follows your newest marked target. Requires Enable Target Focus and the 'Chase Target Focus (Hold)' binding in the game's Flight Controls. Minimum 0.3 seconds; release to return to chase. The action starts unbound and can share the 'Mark Target' button: taps mark on release, while holds that activate focus add no mark. Long holds that never activate focus keep bulk marking.");
         FixWeaponFoV = Flag("Other", "FixWeaponFoV", true, "Use the game's external field of view for bomb aiming and boresight zoom outside the cockpit, keeping weapon displays aligned with the external camera.");
         HitSoundOutsideCockpit = Flag("Other", "HitSoundOutsideCockpit", true, "Play hit-confirmation audio outside the cockpit. Requires hit markers to be enabled in the game's settings.");
@@ -86,7 +86,7 @@ public sealed class Plugin : BaseUnityPlugin
 
         patches = new Harmony(Id);
         patches.PatchAll(typeof(Plugin).Assembly);
-        Logger.LogInfo("Ace Option 1.0.1 loaded");
+        Logger.LogInfo("Ace Option 1.0.2 loaded");
     }
 
     private ConfigEntry<bool> Flag(string section, string key, bool value, string help) =>

@@ -31,18 +31,34 @@ internal static class TargetFocus
         var marked = hud.GetTargetList();
         if (marked == null || marked.Count == 0) return null;
         Unit newest = marked[0];
-        return newest != null && newest != cam.followingUnit && !newest.disabled ? newest : null;
+        return TryGetPosition(cam, newest, out _) ? newest : null;
+    }
+
+    private static bool TryGetPosition(CameraStateManager cam, Unit target, out Vector3 position)
+    {
+        position = default;
+        if (cam == null || cam.followingUnit == null || target == null ||
+            target == cam.followingUnit || target.disabled) return false;
+        var faction = cam.followingUnit.NetworkHQ;
+        // A mark can outlive detection. Require native faction tracking and use
+        // only its authorized position, never the marked unit's live transform.
+        if (faction == null || !faction.IsTargetBeingTracked(target) ||
+            !faction.TryGetKnownPosition(target, out var known)) return false;
+        position = known.ToLocalPosition();
+        return true;
     }
 
     internal static bool Apply(CameraStateManager cam, Unit target, float deltaTime)
     {
+        // Recheck at application time in case detection changed after selection.
+        if (!TryGetPosition(cam, target, out Vector3 destination)) target = null;
         if (!Active && target == null) return false;
         Vector3 pivot = cam.cameraPivot.position;
         Vector3 original = cam.transform.position;
         Quaternion basis = cam.transform.rotation;
         Quaternion inverse = Quaternion.Inverse(basis);
         Vector3 up = cam.followingUnit.transform.up;
-        Vector3 destination = target != null ? target.transform.position : pivot;
+        if (target == null) destination = pivot;
         Vector3 direction = destination - pivot;
         if (direction.sqrMagnitude < .0001f) target = null;
         float blend = 1 - Mathf.Exp(-10 * Mathf.Max(0, deltaTime));
