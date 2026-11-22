@@ -6,7 +6,7 @@ using HarmonyLib;
 
 namespace AceOption;
 
-[BepInPlugin(Id, "Ace Option", "1.0.2")]
+[BepInPlugin(Id, "Ace Option", "1.1.0")]
 [BepInDependency("com.bepis.bepinex.configurationmanager", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInIncompatibility("ChaseCamPlus")]
 [BepInIncompatibility("Thabuki.NuclearOption.CasualQoL")]
@@ -20,9 +20,10 @@ public sealed class Plugin : BaseUnityPlugin
         HudFollowsCamera, PitchLadder, Waterline, LeftInstruments, RightInstruments, Compass,
         VirtualJoystickIndicator, AlwaysFreeLook, FixWeaponFoV, HitSoundOutsideCockpit, SmoothButtonYaw,
         ThrottleChordFlightAssist, YawChordAutoLevel, ThrottleDownGroundBrakes, TargetCycling,
-        CameraAdjustments, TargetFocusEnabled, RememberCameraView, MissileFollowCamera;
+        CameraAdjustments,
+        TargetFocusEnabled, RememberCameraView, MissileFollowCamera, BombTargetHighlight;
     internal static ConfigEntry<FlightCameraView> LastCameraView;
-    public static ConfigEntry<float> FreeLookSensitivity, CameraDistance, PlaneVerticalOffset,
+    public static ConfigEntry<float> FreeLookSensitivity, CameraDistance, PlaneVerticalOffset, CameraHeight, CameraPitch,
         TargetFocusHoldDelay, AutoCenterDelay, AutoCenterSpeed, FreeLookDeadzone, YawRiseTime, YawReturnTime;
 
     // Retain the serialized input names so existing controller bindings remain usable.
@@ -46,9 +47,11 @@ public sealed class Plugin : BaseUnityPlugin
         RememberCameraView = Flag("Other", "RememberCameraView", false, "Remember your last cockpit or chase view when entering an aircraft, including in a new match or after restarting the game. Disabled by default to use the game's normal cockpit start. Enable to save either view chosen with the normal camera controls or Chase Cam Toggle. Spectator views and death/ejection do not replace the saved choice.");
         LastCameraView = Config.Bind("Other", "LastCameraView", FlightCameraView.Cockpit,
             ConfigMenu.Describe("LastCameraView", "Last cockpit or chase view, saved automatically by Remember Camera View."));
-        CameraAdjustments = Flag("Other", "CameraAdjustments", false, "Apply Camera Distance and Aircraft Vertical Offset in chase view. Disabled by default to retain the current camera mode's distance and framing. Enable to apply the suggested or saved slider values; your slider values are retained when disabled.");
+        CameraAdjustments = Flag("Other", "CameraAdjustments", false, "Apply Camera Distance, Aircraft Vertical Offset, Camera Height and Resting Pitch in chase view. Disabled by default. Height and pitch default to 0, adding no displacement or tilt. Disabling removes all four adjustments on the next update and retains their saved slider values.");
         CameraDistance = Number("CameraDistance", .65f, .25f, 2f, "Adjust chase camera distance, including while looking around or focusing a target. Requires Enable Camera Adjustments. 1 uses the original distance; lower values bring the camera closer.");
         PlaneVerticalOffset = Number("PlaneVerticalOffset", -.15f, -.35f, .35f, "Move the aircraft up or down in the chase view, as a fraction of screen height. Requires Enable Camera Adjustments. Negative values place it lower. Target focus centers the target instead.");
+        CameraHeight = Number("CameraHeight", 0f, -20f, 20f, "Move the chase camera along the aircraft's up direction in meters, without tilting it. 0 adds no height; positive raises the camera and negative lowers it. Requires Enable Camera Adjustments. Terrain avoidance can limit the displacement. Set Aircraft Vertical Offset to 0 to adjust height without the existing framing tilt; Camera Distance 1 retains the original distance.");
+        CameraPitch = Number("CameraPitch", 0f, -45f, 45f, "Tilt the resting chase view in degrees without moving the camera. 0 adds no tilt; positive looks down and negative looks up. Requires Enable Camera Adjustments. Added after Aircraft Vertical Offset. Free look returns to this angle; target focus aims at the target and returns to this angle on release. World-projected aiming cues retain their positions.");
         TargetFocusEnabled = Flag("Other", "TargetFocusEnabled", false, "Hold 'Chase Target Focus (Hold)' to follow your newest marked target after Target Focus Hold Delay (seconds); release to return to chase. Requires current faction tracking and uses your faction's known target position. Losing detection returns smoothly to chase. Disabled by default. Works independently of Enable Camera Adjustments and Enable Free Look. Disabling ends focus and preserves your delay and binding.\nRequired binding: assign 'Chase Target Focus (Hold)' in the game's Flight Controls; this custom action starts unbound. It can share the 'Mark Target' button. Holds that activate focus add no mark; unused long holds keep bulk marking.");
         TargetFocusHoldDelay = Number("TargetFocusHoldDelay", .3f, .3f, 2f, "Seconds to hold before the chase camera follows your newest marked target. Requires Enable Target Focus and the 'Chase Target Focus (Hold)' binding in the game's Flight Controls. Minimum 0.3 seconds; release to return to chase. The action starts unbound and can share the 'Mark Target' button: taps mark on release, while holds that activate focus add no mark. Long holds that never activate focus keep bulk marking.");
         FixWeaponFoV = Flag("Other", "FixWeaponFoV", true, "Use the game's external field of view for bomb aiming and boresight zoom outside the cockpit, keeping weapon displays aligned with the external camera.");
@@ -78,6 +81,9 @@ public sealed class Plugin : BaseUnityPlugin
         YawReturnTime = Config.Bind("Flight Controls", "YawReturnTime", 2f,
             ConfigMenu.Describe("YawReturnTime", "Seconds to return from full rudder to center after releasing a yaw button. Smaller inputs return sooner. Reversing first returns through center at this rate. Requires Smooth Button Yaw and buttons or keys assigned to the existing 'Yaw' action.", new AcceptableValueRange<float>(.02f, 5f)));
 
+        BombTargetHighlight = Flag("Combat", "BombTargetHighlight", false,
+            "Turn the visible bomb impact aiming circle red when any currently faction-tracked enemy is inside it, including unmarked contacts. Uses only your faction's known positions and the game's tracking timeout. Returns to the native color when no eligible contact is inside. Disabled by default. Works in cockpit and chase; no binding is needed. The separate CCRP release-timing circle keeps its native colors.");
+        BombTargetHighlight.SettingChanged += (_, __) => { if (!BombTargetHighlight.Value) Helpers.BombTargetHighlight.Restore(); };
         MissileFollowCamera = Flag("Combat", "MissileFollowCamera", false,
             "Fire one missile per press of the existing 'Fire' control. Hold for 0.3 seconds to follow that missile with the camera; release or missile impact returns to your previous cockpit/chase view. Disabled by default. Release and press again for another missile. Multiple marked targets use the first target for this single launch. Guns and other weapon types keep their normal firing controls. Requires no new binding.");
         TargetCycling = Flag("Combat", "TargetCycling", false,
@@ -86,7 +92,7 @@ public sealed class Plugin : BaseUnityPlugin
 
         patches = new Harmony(Id);
         patches.PatchAll(typeof(Plugin).Assembly);
-        Logger.LogInfo("Ace Option 1.0.2 loaded");
+        Logger.LogInfo("Ace Option 1.1.0 loaded");
     }
 
     private ConfigEntry<bool> Flag(string section, string key, bool value, string help) =>
@@ -110,6 +116,7 @@ public sealed class Plugin : BaseUnityPlugin
 
     private static void StopShortcuts()
     {
+        Helpers.BombTargetHighlight.Restore();
         MissileCamera.Reset();
         AbsoluteThrottle.Reset();
         FlightAssistCommands.Reset();
@@ -124,6 +131,7 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        Helpers.BombTargetHighlight.Restore();
         MissileCamera.Release();
         FlightAssistCommands.Reset();
         GroundBrakeCommands.Reset();

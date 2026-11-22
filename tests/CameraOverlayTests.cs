@@ -181,6 +181,7 @@ namespace AceOption
         public static Toggle CameraAdjustments = new Toggle(), TargetFocusEnabled = new Toggle();
         public static Setting CameraDistance = new Setting();
         public static Setting PlaneVerticalOffset = new Setting { Value = 0f };
+        public static Setting CameraHeight = new Setting { Value = 0f }, CameraPitch = new Setting { Value = 0f };
     }
 }
 
@@ -199,6 +200,159 @@ internal static class CameraOverlayTests
         Vector3 point = Quaternion.Inverse(cam.transform.rotation)
             * (cam.followingUnit.transform.position - cam.transform.position);
         return 0.5f + point.y / point.z / (2f * (float)Math.Tan(cam.mainCamera.fieldOfView * Math.PI / 360));
+    }
+    private static void HeightPitchTests()
+    {
+        TargetFocus.Reset();
+        ChasePlacement.Reset();
+        var aircraft = new Aircraft();
+        GameManager.local = aircraft;
+        var cam = new CameraStateManager { followingUnit = aircraft };
+        cam.currentState = cam.chaseState;
+        cam.transform.parent = cam.cameraPivot;
+        cam.transform.localPosition = new Vector3(0, 3, -20);
+        var baseline = cam.transform.position;
+        ChasePlacement.Capture(cam);
+        AceOption.Plugin.CameraAdjustments.Value = true;
+        AceOption.Plugin.CameraHeight.Value = 0f;
+        AceOption.Plugin.CameraPitch.Value = 0f;
+        ChasePlacement.ApplyHeight(cam);
+        ChasePlacement.ApplyPitch(cam);
+        Near(baseline, cam.transform.position, "Default height 0 preserves position with camera adjustments enabled");
+        Near(Vector3.forward, cam.transform.forward, "Default resting pitch 0 preserves the viewing angle");
+
+        AceOption.Plugin.CameraAdjustments.Value = false;
+        AceOption.Plugin.CameraHeight.Value = 5f;
+        AceOption.Plugin.CameraPitch.Value = 12f;
+        ChasePlacement.ApplyHeight(cam);
+        ChasePlacement.ApplyPitch(cam);
+        Near(baseline, cam.transform.position, "Master off blocks nonzero saved height");
+        Near(Vector3.forward, cam.transform.forward, "Master off blocks nonzero saved pitch");
+        AceOption.Plugin.CameraAdjustments.Value = true;
+        AceOption.Plugin.CameraPitch.Value = 0f;
+        ChasePlacement.ApplyHeight(cam);
+        Near(new Vector3(0, 8, -20), cam.transform.position, "Height works under Camera Adjustments with resting pitch 0");
+        Near(Vector3.forward, cam.transform.forward, "Raising the camera does not tilt the view");
+        Check(PlaneViewportY(cam) < .2f, "Physical height can lower the aircraft in the frame while facing forward");
+        Vector3 distant = Quaternion.Inverse(cam.transform.rotation) * (new Vector3(0, 3, 10000) - cam.transform.position);
+        Check(Math.Abs(distant.y / distant.z) < .001f, "Height keeps distant forward cues near center without a framing tilt");
+        AceOption.Plugin.CameraHeight.Value = 0f;
+        foreach (float pitch in new[] { -45f, -12f, 0f, 12f, 45f })
+        {
+            ChasePlacement.RestoreForUpdate(cam);
+            AceOption.Plugin.CameraPitch.Value = pitch;
+            ChasePlacement.ApplyHeight(cam);
+            ChasePlacement.ApplyPitch(cam);
+            Near(baseline, cam.transform.position, "Resting pitch works alone without changing position");
+            Near(new Vector3(0, -(float)Math.Sin(pitch * Math.PI / 180), (float)Math.Cos(pitch * Math.PI / 180)),
+                cam.transform.forward, "Positive resting pitch looks down; negative pitch looks up");
+        }
+
+        AceOption.Plugin.CameraPitch.Value = 0f;
+        foreach (float height in new[] { -20f, -5f, 0f, 5f, 20f })
+        {
+            ChasePlacement.RestoreForUpdate(cam);
+            AceOption.Plugin.CameraHeight.Value = height;
+            aircraft.transform.rotation = Quaternion.AngleAxis(90f, Vector3.forward);
+            ChasePlacement.ApplyHeight(cam);
+            Near(baseline + new Vector3(-height, 0, 0), cam.transform.position,
+                "Height follows the aircraft's up direction when banked");
+            Near(Vector3.forward, cam.transform.forward, "Banked height changes preserve camera orientation");
+        }
+        aircraft.transform.rotation = Quaternion.identity;
+        AceOption.Plugin.CameraAdjustments.Value = true;
+        AceOption.Plugin.CameraHeight.Value = 5f;
+        AceOption.Plugin.CameraPitch.Value = 12f;
+        AceOption.Plugin.PlaneVerticalOffset.Value = -.15f;
+        foreach (float distance in new[] { .25f, 1f, 2f })
+        {
+            ChasePlacement.RestoreForUpdate(cam);
+            AceOption.Plugin.CameraDistance.Value = distance;
+            ChasePlacement.ApplyDistance(cam);
+            ChasePlacement.ApplyHeight(cam);
+            Near(baseline * distance + new Vector3(0, 5, 0), cam.transform.position,
+                "Height remains a fixed number of meters after distance scaling");
+            ChasePlacement.ApplyFraming(cam);
+            var framing = cam.transform.rotation;
+            var framedPosition = cam.transform.position;
+            ChasePlacement.ApplyPitch(cam);
+            Check(Math.Abs(Quaternion.Angle(framing, cam.transform.rotation) - 12f) < .01f,
+                "Resting pitch adds the requested angle after legacy framing");
+            Near(framedPosition, cam.transform.position, "Combined framing and pitch preserve physical height");
+        }
+
+        AceOption.Plugin.CameraAdjustments.Value = true;
+        Quaternion resting = Quaternion.identity;
+        for (int frame = 0; frame < 120; frame++)
+        {
+            ChasePlacement.RestoreForUpdate(cam);
+            ChasePlacement.Capture(cam);
+            ChasePlacement.ApplyHeight(cam);
+            ChasePlacement.ApplyPitch(cam);
+            Near(new Vector3(0, 8, -20), cam.transform.position, "Height must not accumulate across frames");
+            Check(Math.Abs(Quaternion.Angle(Quaternion.identity, cam.transform.rotation) - 12f) < .01f,
+                "Resting pitch must not accumulate across frames");
+            resting = cam.transform.rotation;
+        }
+        cam.cameraPivot.position = new Vector3(100000, 0, -100000);
+        ChasePlacement.RestoreForUpdate(cam);
+        ChasePlacement.ApplyHeight(cam);
+        ChasePlacement.ApplyPitch(cam);
+        Near(new Vector3(0, 8, -20), cam.transform.localPosition, "Height survives a floating-origin shift");
+        cam.cameraPivot.position = Vector3.zero;
+
+        // Free-look overlays are transient; recentering restores the configured view.
+        cam.transform.rotation = Quaternion.LookRotation(Vector3.right, Vector3.up);
+        cam.transform.position = new Vector3(-20, 8, 0);
+        ChasePlacement.RestoreForUpdate(cam);
+        ChasePlacement.ApplyHeight(cam);
+        ChasePlacement.ApplyPitch(cam);
+        Near(new Vector3(0, 8, -20), cam.transform.position, "Center restores height after a manual orbit");
+        Near(resting * Vector3.forward, cam.transform.forward, "Center restores the resting pitch after free look");
+        var target = new Unit();
+        target.transform.position = new Vector3(1000, 150, 300);
+        for (int frame = 0; frame < 240; frame++)
+        {
+            ChasePlacement.RestoreForUpdate(cam);
+            ChasePlacement.ApplyHeight(cam);
+            ChasePlacement.ApplyPitch(cam);
+            TargetFocus.Apply(cam, target, 1f / 60);
+        }
+        Near((target.transform.position - cam.transform.position).normalized, cam.transform.forward,
+            "Target focus centers a tracked target despite height and resting pitch");
+        aircraft.NetworkHQ.Untracked.Add(target);
+        for (int frame = 0; frame < 240; frame++)
+        {
+            ChasePlacement.RestoreForUpdate(cam);
+            ChasePlacement.ApplyHeight(cam);
+            ChasePlacement.ApplyPitch(cam);
+            TargetFocus.Apply(cam, target, 1f / 60);
+        }
+        Check(!TargetFocus.Active, "Tracking loss finishes returning with height and resting pitch enabled");
+        Near(new Vector3(0, 8, -20), cam.transform.position, "Tracking loss returns to the configured height");
+        Near(resting * Vector3.forward, cam.transform.forward, "Tracking loss returns to the configured resting pitch");
+
+        AceOption.Plugin.CameraAdjustments.Value = false;
+        ChasePlacement.RestoreForUpdate(cam);
+        ChasePlacement.ApplyHeight(cam);
+        ChasePlacement.ApplyPitch(cam);
+        Near(baseline, cam.transform.position, "Disabling the master removes the previous height on the next frame");
+        Near(Vector3.forward, cam.transform.forward, "Disabling the master removes the previous resting pitch");
+        Check(AceOption.Plugin.CameraHeight.Value == 5f && AceOption.Plugin.CameraPitch.Value == 12f,
+            "Disabling the master preserves both slider values");
+        AceOption.Plugin.CameraAdjustments.Value = true;
+        ChasePlacement.ApplyHeight(cam);
+        ChasePlacement.ApplyPitch(cam);
+        Near(new Vector3(0, 8, -20), cam.transform.position, "Re-enabling the master restores saved height");
+        Near(resting * Vector3.forward, cam.transform.forward, "Re-enabling the master restores saved pitch");
+        AceOption.Plugin.CameraHeight.Value = 0f;
+        AceOption.Plugin.CameraPitch.Value = 0f;
+        ChasePlacement.RestoreForUpdate(cam);
+        ChasePlacement.ApplyHeight(cam);
+        ChasePlacement.ApplyPitch(cam);
+        Near(baseline, cam.transform.position, "Resetting height to 0 removes its previous overlay on the next frame");
+        Near(Vector3.forward, cam.transform.forward, "Resetting pitch to 0 removes its previous overlay on the next frame");
+        ChasePlacement.Reset();
     }
     private static void DetectionTests()
     {
@@ -495,6 +649,7 @@ internal static class CameraOverlayTests
         ChasePlacement.RestoreForUpdate(cam);
         Near(new Vector3(42, 0, 0), cam.transform.position, "Reparented camera must discard stale baseline");
         DetectionTests();
+        HeightPitchTests();
         Console.WriteLine("PASS: " + checks + " camera overlay assertions (stand-in math and transforms)");
     }
 }

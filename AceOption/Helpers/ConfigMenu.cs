@@ -23,6 +23,8 @@ internal static class ConfigMenu
             "CameraAdjustments" => new ConfigurationManagerAttributes(Camera, "Enable Camera Adjustments", 90),
             "CameraDistance" => new ConfigurationManagerAttributes(Camera, "Camera Distance", 80, "CameraAdjustments"),
             "PlaneVerticalOffset" => new ConfigurationManagerAttributes(Camera, "Aircraft Vertical Offset", 70, "CameraAdjustments"),
+            "CameraHeight" => new ConfigurationManagerAttributes(Camera, "Camera Height (meters)", 67, "CameraAdjustments"),
+            "CameraPitch" => new ConfigurationManagerAttributes(Camera, "Resting Pitch (degrees)", 65, "CameraAdjustments"),
             "TargetFocusEnabled" => new ConfigurationManagerAttributes(Camera, "Enable Target Focus", 60),
             "TargetFocusHoldDelay" => new ConfigurationManagerAttributes(Camera, "Target Focus Hold Delay (seconds)", 50, "TargetFocusEnabled"),
             "FixWeaponFoV" => new ConfigurationManagerAttributes(Camera, "Correct External Weapon FOV", 40),
@@ -46,6 +48,7 @@ internal static class ConfigMenu
             "YawRiseTime" => new ConfigurationManagerAttributes(Flight, "Yaw Press Time (seconds)", 20, "SmoothButtonYaw", "Flight Controls"),
             "YawReturnTime" => new ConfigurationManagerAttributes(Flight, "Yaw Return Time (seconds)", 10, "SmoothButtonYaw", "Flight Controls"),
 
+            "BombTargetHighlight" => new ConfigurationManagerAttributes(Combat, "Bomb Aiming Circle Highlight", 60),
             "MissileFollowCamera" => new ConfigurationManagerAttributes(Combat, "Missile Camera (Hold Fire)", 50),
             "TargetCycling" => new ConfigurationManagerAttributes(Combat, "Single-Target Cycling", 40),
             "TurretAim" => new ConfigurationManagerAttributes(Combat, "Aim Turrets with Camera", 30),

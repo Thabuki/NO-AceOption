@@ -104,6 +104,7 @@ internal static class TranspilerTests
         VerifyPatch(plugin, "MissileFirePatch", typeof(PilotPlayerState), "PlayerControls", 1, "Fire");
         VerifyCameraPreferenceContracts(plugin);
         VerifyTargetFocusContracts(plugin);
+        VerifyBombHighlightContracts(plugin);
         VerifyConfigMenuContracts(plugin);
         VerifyHudAlignmentContracts(plugin);
         VerifyYawContracts(plugin);
@@ -177,8 +178,7 @@ internal static class TranspilerTests
             .Select(f => (OpCode)f.GetValue(null)).ToDictionary(o => o.Name);
         using (var assembly = Mono.Cecil.AssemblyDefinition.ReadAssembly(method.DeclaringType.Assembly.Location))
         {
-            var type = assembly.MainModule.Types.Single(t => t.FullName == method.DeclaringType.FullName);
-            var definition = type.Methods.Single(m => m.Name == method.Name);
+            var definition = (Mono.Cecil.MethodDefinition)assembly.MainModule.LookupToken(method.MetadataToken);
             return definition.Body.Instructions.Select(i => new CodeInstruction(opcodes[i.OpCode.Name],
                 i.Operand is Mono.Cecil.FieldReference field && field.Name == "targetList" && field.DeclaringType.Name == "WeaponManager"
                     ? (object)AccessTools.Field(typeof(WeaponManager), "targetList") : i.Operand)).ToList();
@@ -551,6 +551,67 @@ internal static class TranspilerTests
         Console.WriteLine("PASS: optional targeting hooks match the installed game");
     }
 
+    private static void VerifyBombHighlightContracts(Assembly plugin)
+    {
+        var patch = plugin.GetType("AceOption.Patches.BombTargetHighlightPatch", true);
+        var target = patch.GetCustomAttributes(typeof(HarmonyPatch), false).Cast<HarmonyPatch>().Single().info;
+        Check(target.declaringType == typeof(HUDBombingState) && target.methodName == "UpdateWeaponDisplay",
+            "Bomb highlight runs on the native bombing display update");
+        var native = AccessTools.Method(typeof(HUDBombingState), "UpdateWeaponDisplay");
+        var postfix = AccessTools.Method(patch, "Postfix");
+        var args = postfix.GetParameters();
+        Check(native.GetParameters()[0].ParameterType == typeof(Aircraft) &&
+            args[0].Name == "__0" && args[0].ParameterType == typeof(Aircraft),
+            "Bomb highlight receives the displayed aircraft independently of argument names");
+        var image = AccessTools.Field(typeof(HUDBombingState), "ccipPipper");
+        Check(image != null && image.FieldType.FullName == "UnityEngine.UI.Image" &&
+            args[1].Name == "___ccipPipper" && args[1].ParameterType == image.FieldType,
+            "Bomb highlight injects the native impact circle, not the CCRP release circle");
+        Check(AccessTools.Field(typeof(CombatHUD), "markers").FieldType == typeof(List<HUDUnitMarker>),
+            "The native HUD exposes the complete faction contact marker list");
+        foreach (var entry in new[] {
+            new { Patch = "BombHighlightWeaponChangePatch", Method = "ShowWeaponStation" },
+            new { Patch = "BombHighlightAircraftChangePatch", Method = "RemoveAircraft" }
+        })
+        {
+            var cleanup = plugin.GetType("AceOption.Patches." + entry.Patch, true);
+            var hook = cleanup.GetCustomAttributes(typeof(HarmonyPatch), false).Cast<HarmonyPatch>().Single().info;
+            Check(hook.declaringType == typeof(CombatHUD) && hook.methodName == entry.Method &&
+                AccessTools.Method(typeof(CombatHUD), entry.Method) != null,
+                entry.Method + " restores the previous bomb-circle color");
+        }
+        var helper = plugin.GetType("AceOption.Helpers.BombTargetHighlight", true);
+        var apply = ReadMetadataInstructions(AccessTools.Method(helper, "Apply"));
+        Func<CodeInstruction, string, string, bool> calls = (code, owner, name) =>
+            code.operand is Mono.Cecil.MethodReference m && m.DeclaringType.Name == owner && m.Name == name;
+        int tracked = apply.FindIndex(c => calls(c, "FactionHQ", "IsTargetBeingTracked"));
+        int known = apply.FindIndex(c => calls(c, "FactionHQ", "TryGetKnownPosition"));
+        int project = apply.FindIndex(c => calls(c, "Camera", "WorldToScreenPoint"));
+        Check(tracked >= 0 && known > tracked && project > known,
+            "Bomb highlight gates authorized-position projection on current faction tracking");
+        Check(apply.Skip(tracked + 1).Take(known - tracked - 1).Any(c => c.opcode == OpCodes.Brfalse || c.opcode == OpCodes.Brfalse_S),
+            "Failed tracking bypasses the known-position query");
+        Check(apply.Any(c => calls(c, "GlobalPositionExtensions", "ToLocalPosition")),
+            "Bomb highlight uses native floating-origin conversion");
+        Check(apply.Any(c => calls(c, "RectTransformUtility", "ScreenPointToLocalPointInRectangle")),
+            "Bomb highlight uses the rendered UI coordinate conversion");
+        Check(!apply.Any(c => c.operand is Mono.Cecil.MethodReference m &&
+                (m.Name == "get_transform" || m.Name == "GetTargetList" || m.Name.StartsWith("FindObjects"))),
+            "Bomb highlight never reads live enemy transforms, marked lists or scene-wide searches");
+        Check(!apply.Any(c => c.operand is Mono.Cecil.FieldReference f &&
+                f.DeclaringType.Name == "HUDUnitMarker" && f.Name != "unit"),
+            "Marking and marker appearance cannot restrict faction contact eligibility");
+        var late = ReadMetadataInstructions(AccessTools.Method(typeof(CombatHUD), "LateUpdate"));
+        Check(late.FindIndex(c => calls(c, "CombatHUD", "UpdateMarkers")) <
+                late.FindIndex(c => calls(c, "HUDWeaponState", "UpdateWeaponDisplay")),
+            "The native HUD updates contacts before the patched weapon display");
+        var awake = ReadMetadataInstructions(AccessTools.Method(plugin.GetType("AceOption.Plugin", true), "Awake"));
+        int setting = awake.FindIndex(c => c.opcode == OpCodes.Ldstr && Equals(c.operand, "BombTargetHighlight"));
+        Check(setting > 0 && Equals(awake[setting - 1].operand, "Combat") && awake[setting + 1].opcode == OpCodes.Ldc_I4_0,
+            "Bomb-circle highlighting is an independent default-off Combat setting");
+        Console.WriteLine("PASS: bomb-circle hooks, tracking, position privacy and configuration contracts match the installed game");
+    }
+
     private static void VerifyTargetFocusContracts(Assembly plugin)
     {
         var tracked = AccessTools.Method(typeof(FactionHQ), "IsTargetBeingTracked", new[] { typeof(Unit) });
@@ -621,6 +682,7 @@ internal static class TranspilerTests
                 Name = "Chase Camera",
                 Keys = new[] {
                     "RememberCameraView", "CameraAdjustments", "CameraDistance", "PlaneVerticalOffset",
+                    "CameraHeight", "CameraPitch",
                     "TargetFocusEnabled", "TargetFocusHoldDelay", "FixWeaponFoV", "HitSoundOutsideCockpit"
                 }
             },
@@ -640,7 +702,7 @@ internal static class TranspilerTests
             },
             new {
                 Name = "Combat",
-                Keys = new[] { "MissileFollowCamera", "TargetCycling", "TurretAim" }
+                Keys = new[] { "BombTargetHighlight", "MissileFollowCamera", "TargetCycling", "TurretAim" }
             }
         };
         var awake = ReadMetadataInstructions(AccessTools.Method(plugin.GetType("AceOption.Plugin", true), "Awake"));
@@ -668,6 +730,35 @@ internal static class TranspilerTests
         int focus = awake.FindIndex(c => c.opcode == OpCodes.Ldstr && Equals(c.operand, "TargetFocusEnabled"));
         Check(focus > 0 && Equals(awake[focus - 1].operand, "Other") && awake[focus + 1].opcode == OpCodes.Ldc_I4_0,
             "Target focus has an independent default-off configuration flag");
+        foreach (var spec in new[] {
+            new { Key = "CameraHeight", Min = -20f, Max = 20f },
+            new { Key = "CameraPitch", Min = -45f, Max = 45f }
+        })
+        {
+            int value = awake.FindIndex(c => c.opcode == OpCodes.Ldstr && Equals(c.operand, spec.Key));
+            Check(value >= 0 && Equals(awake[value + 1].operand, 0f) &&
+                Equals(awake[value + 2].operand, spec.Min) && Equals(awake[value + 3].operand, spec.Max),
+                spec.Key + " binds with neutral default and documented range");
+            var valueTag = ((BepInEx.Configuration.ConfigDescription)describe.Invoke(null,
+                new object[] { spec.Key, "", null })).Tags.Single();
+            var valueParent = (BepInEx.Configuration.ConfigDefinition)AccessTools.Field(valueTag.GetType(), "Parent").GetValue(valueTag);
+            Check(valueParent.Section == "Other" && valueParent.Key == "CameraAdjustments",
+                spec.Key + " belongs directly under Enable Camera Adjustments");
+        }
+        var chasePostfix = AccessTools.Method(plugin.GetType("AceOption.Patches.CameraChaseStatePatches+UpdateState", true), "Postfix");
+        var cameraCalls = ReadMetadataInstructions(chasePostfix).Where(c => c.operand is Mono.Cecil.MethodReference)
+            .Select(c => (Mono.Cecil.MethodReference)c.operand).ToList();
+        Func<string, string, int> callIndex = (owner, method) =>
+            cameraCalls.FindIndex(m => m.DeclaringType.Name == owner && m.Name == method);
+        int distanceCall = callIndex("ChasePlacement", "ApplyDistance");
+        int heightCall = callIndex("ChasePlacement", "ApplyHeight");
+        int terrainCall = callIndex("CameraChaseStatePatches", "AvoidTerrain");
+        int framingCall = callIndex("ChasePlacement", "ApplyFraming");
+        int pitchCall = callIndex("ChasePlacement", "ApplyPitch");
+        int focusCall = callIndex("TargetFocus", "Apply");
+        Check(distanceCall >= 0 && heightCall > distanceCall && terrainCall > heightCall &&
+            framingCall > terrainCall && pitchCall > framingCall && focusCall > pitchCall,
+            "Height is terrain-checked after distance; resting pitch precedes target focus after legacy framing");
         int deadzone = awake.FindIndex(c => c.opcode == OpCodes.Ldstr && Equals(c.operand, "FreeLookDeadzone"));
         Check(deadzone >= 0 && Equals(awake[deadzone + 2].operand, 0f) && Equals(awake[deadzone + 3].operand, 1f),
             "Look Deadzone binds with the full 0 to 1 range");

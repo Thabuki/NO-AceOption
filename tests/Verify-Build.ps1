@@ -150,6 +150,16 @@ if ($LASTEXITCODE -ne 0) { throw 'Optional combat test compilation failed' }
 & $combatTestExe
 if ($LASTEXITCODE -ne 0) { throw 'Optional targeting tests failed' }
 
+$bombTestExe = Join-Path $repo 'AceOption\obj\local\BombTargetHighlightTests.exe'
+& $compiler /nologo /target:exe /langversion:latest "/out:$bombTestExe" `
+    "/reference:$(Join-Path $GameDir 'BepInEx\core\0Harmony.dll')" `
+    (Join-Path $repo 'AceOption\Helpers\BombTargetHighlight.cs') `
+    (Join-Path $repo 'AceOption\Patches\BombTargetHighlightPatches.cs') `
+    (Join-Path $PSScriptRoot 'BombTargetHighlightTests.cs')
+if ($LASTEXITCODE -ne 0) { throw 'Bomb-circle test compilation failed' }
+& $bombTestExe $GameDir
+if ($LASTEXITCODE -ne 0) { throw 'Bomb-circle tracking and color tests failed' }
+
 # Read metadata only; do not launch the game or execute its assemblies.
 Add-Type -Path (Join-Path $GameDir 'BepInEx\core\Mono.Cecil.dll')
 $game = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((Join-Path $GameDir 'NuclearOption_Data\Managed\Assembly-CSharp.dll'))

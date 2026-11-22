@@ -29,6 +29,17 @@ internal static class ChasePlacement
         Vector3 boom = cam.transform.position - cam.cameraPivot.position;
         cam.transform.position = cam.cameraPivot.position + boom * Plugin.CameraDistance.Value;
     }
+    internal static void ApplyHeight(CameraStateManager cam)
+    {
+        if (!Plugin.CameraAdjustments.Value || cam.followingUnit == null || Plugin.CameraHeight.Value == 0) return;
+        // Keep translation independent of viewing angle and the distance multiplier.
+        cam.transform.position += cam.followingUnit.transform.up * Plugin.CameraHeight.Value;
+    }
+    internal static void ApplyPitch(CameraStateManager cam)
+    {
+        if (!Plugin.CameraAdjustments.Value || Plugin.CameraPitch.Value == 0) return;
+        cam.transform.rotation *= Quaternion.AngleAxis(Plugin.CameraPitch.Value, Vector3.right);
+    }
     internal static void ApplyFraming(CameraStateManager cam)
     {
         if (!Plugin.CameraAdjustments.Value || cam.mainCamera == null || cam.followingUnit == null || Plugin.PlaneVerticalOffset.Value == 0) return;

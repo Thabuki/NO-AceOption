@@ -5,7 +5,7 @@ customizable HUD, and an Ace Combat-inspired flying experience. Requires
 **BepInEx 5**. Configure the mod through **BepInEx Configuration Manager** or
 its config file.
 
-Current version: **1.0.2**. [Download the release](https://github.com/Thabuki/NO-AceOption/releases/tag/v1.0.2).
+Current version: **1.1.0**. [Download the release](https://github.com/Thabuki/NO-AceOption/releases/tag/v1.1.0).
 
 ## Features
 
@@ -33,15 +33,25 @@ idle timer.
 | Setting                           | Default | Behavior                                                                                                                            |
 | --------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | Remember Camera View              | Off     | Enable to restore your last cockpit/chase choice across aircraft changes, respawns, matches and game restarts.                      |
-| Enable Camera Adjustments         | Off     | Apply the saved distance and vertical framing adjustments.                                                                          |
+| Enable Camera Adjustments         | Off     | Apply the distance, vertical framing, camera height and resting pitch sliders. |
 | Camera Distance                   | 0.65    | Scale chase distance from 0.25 to 2. A value of 1 uses the original distance. Requires Enable Camera Adjustments.                   |
 | Aircraft Vertical Offset          | -0.15   | Move the aircraft vertically by -0.35 to 0.35 of screen height. Negative values place it lower. Requires Enable Camera Adjustments. |
+| Camera Height (meters)            | 0       | Move the camera -20 to 20 meters along the aircraft's up direction without tilting it. Positive raises it; 0 adds no height. Requires Enable Camera Adjustments. |
+| Resting Pitch (degrees)           | 0       | Tilt the view -45 to 45 degrees without moving the camera. Positive looks down; 0 adds no tilt. Requires Enable Camera Adjustments. |
 | Enable Target Focus               | Off     | Hold Chase Target Focus (Hold) to follow the newest marked target. Requires assigning that action in Flight Controls.               |
 | Target Focus Hold Delay (seconds) | 0.3     | Set the hold threshold from 0.3 to 2 seconds. Requires Enable Target Focus.                                                         |
 | Correct External Weapon FOV       | On      | Use external-view FOV for bomb aiming and boresight zoom outside the cockpit.                                                       |
 | Hit Sound Outside Cockpit         | On      | Play external-view hit confirmation audio when the game's hit markers are enabled.                                                  |
 
-Free look, camera adjustments and target focus have independent switches.
+Enable Camera Adjustments controls distance, vertical framing, camera height
+and resting pitch. Height and resting pitch default to 0, adding no height or
+tilt. Turning the main switch
+off disables all four adjustments and their menu controls while preserving
+the saved values. Free look recenters to the configured resting angle;
+target focus aims at the target and returns to that angle on release. Existing
+Aircraft Vertical Offset adds its own tilt. Set it to 0 to tune physical height
+and pitch alone; Camera Distance 1 retains the original distance.
+World-projected aiming cues continue to follow their world points.
 Remember Camera View starts off, so new aircraft use the native cockpit start.
 Existing saved On values carry over; turn the setting off or reset it in
 Configuration Manager to use the new default.
@@ -101,9 +111,15 @@ immediately.
 
 | Setting                    | Default | Behavior                                                                                                                                                                                   |
 | -------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Bomb Aiming Circle Highlight | Off | Turn the bomb impact aiming circle red when a currently faction-tracked enemy is inside, including unmarked contacts. Uses faction-known positions. |
 | Missile Camera (Hold Fire) | Off     | Launch one missile per Fire press. Hold for 0.3 seconds to follow its actual spawn, then release or wait for impact to return to the previous cockpit/chase view and FOV.                  |
 | Single-Target Cycling      | Off     | Cycle one visible, detected enemy per Mark Target tap, preferring contacts suited to the selected weapon.                                                                                  |
 | Aim Turrets with Camera    | On      | Aim manual turrets without an assigned target along the chase camera, including recentering. Disabling uses the aircraft nose. Native automatic aiming at assigned targets takes priority. |
+
+The bomb-circle highlight works in cockpit and chase. It returns to the native
+color when no qualifying enemy is inside, including when tracking expires.
+It checks the visible circle rather than predicting blast damage. The separate
+CCRP release-timing circle keeps its existing feedback. No binding is needed.
 
 The missile camera uses the first marked target and supports rail, bay and
 network spawn delays. Each additional missile requires a new press. Target
@@ -167,8 +183,8 @@ These behaviors have no separate menu switch.
 
 ## Install and upgrade
 
-Download the built `AceOption-1.0.2.zip` asset from the
-[1.0.2 release](https://github.com/Thabuki/NO-AceOption/releases/tag/v1.0.2).
+Download the built `AceOption-1.1.0.zip` asset from the
+[1.1.0 release](https://github.com/Thabuki/NO-AceOption/releases/tag/v1.1.0).
 GitHub's automatic **Source code** downloads contain the
 repository files; the installable mod is the separately attached ZIP.
 

@@ -3,13 +3,14 @@
 [README and full feature list](../README.md)
 
 Ace Option adds configurable chase-camera, HUD, input and combat features
-to Nuclear Option. This guide describes the current 1.0.2 behavior.
+to Nuclear Option. This guide describes version 1.1.0, including independent
+camera height/resting pitch and the bomb aiming-circle highlight.
 The README lists every visible setting in custom-menu order.
 
 ## Install and upgrade
 
-Get the built `AceOption-1.0.2.zip` asset from the
-[1.0.2 release](https://github.com/Thabuki/NO-AceOption/releases/tag/v1.0.2).
+Get the built `AceOption-1.1.0.zip` asset from the
+[1.1.0 release](https://github.com/Thabuki/NO-AceOption/releases/tag/v1.1.0).
 The automatic **Source code (zip)** and **Source code (tar.gz)**
 downloads contain source files, not the separately built plugin.
 
@@ -78,16 +79,38 @@ while following a target and during the smooth return to ordinary chase.
 
 ### Distance, framing and remembered view
 
-Enable Camera Adjustments starts off. Enabling it applies Camera Distance and
-Aircraft Vertical Offset. Distance ranges from 0.25 to 2, with a suggested
+Enable Camera Adjustments starts off. It controls Camera Distance, Aircraft
+Vertical Offset, Camera Height and Resting Pitch.
+Distance ranges from 0.25 to 2, with a suggested
 value of 0.65 and an original-distance multiplier of 1. Vertical offset ranges
 from -0.35 to 0.35 of screen height, with -0.15 as the suggested value.
-Negative values place the aircraft lower. Target focus aims at the target
-during its hold.
+Negative values place the aircraft lower. Aircraft Vertical Offset changes
+framing by tilting the view. Target focus aims at the target during its hold.
 
-Disabling camera adjustments restores the original chase placement on the next
-update and retains both slider values. Native zoom and camera presets are
-available. Terrain checks follow distance, orbit and focus movement. Relative
+Camera Height and Resting Pitch are sliders beneath Enable Camera Adjustments,
+alongside distance and vertical framing. Both default to 0: no added height
+or pitch. Setting either slider back to 0 removes its adjustment on the next
+update. Turning the main switch off grays out all four sliders.
+Camera Height (meters) defaults to 0 and ranges from -20 to 20. It translates
+the camera along the aircraft's up direction without changing its angle:
+positive raises it, negative lowers it. This direction follows aircraft bank,
+and the offset is applied after the distance multiplier, before free-look
+orbit and terrain avoidance. Terrain can restrict the requested height.
+
+Resting Pitch (degrees) defaults to 0 and ranges from -45 to 45. It tilts the
+view without changing camera position: positive looks down, negative looks up.
+Free look and Center return to this configured angle. Target focus aims at the
+target while held and smoothly returns to the configured chase view on
+release or tracking loss. The pitch adjustment is added after Aircraft
+Vertical Offset. For independent physical height and pitch, set Aircraft
+Vertical Offset to 0; set Camera Distance to 1 to retain the original distance.
+Native aiming cues keep their
+world-projected positions; these controls do not force a reticle to screen
+center. Cockpit and other camera views are unaffected.
+
+Disabling Enable Camera Adjustments removes all four adjustments on the next
+update and retains all four saved slider values. Native zoom and camera presets are
+available. Terrain checks follow distance/height, orbit and focus movement. Relative
 transform restoration prevents frame-to-frame accumulation and supports the
 game's floating-origin shifts. Very close distances can clip large aircraft.
 
@@ -284,6 +307,24 @@ fires all ready fixed and turret gun stations. The current selected weapon and
 target list are retained. Native station/gun methods handle ammo, cadence and
 safeties.
 
+### Bomb Aiming Circle Highlight
+
+This setting starts off under Combat. When enabled, the visible bomb impact
+aiming circle turns red whenever a currently faction-tracked enemy is inside its
+circular boundary. Unmarked enemies count; selecting or marking is unnecessary.
+The check uses your faction's known positions, including tracking shared by
+other faction units. It never uses an undetected enemy's live position. The
+game's normal tracking timeout applies. Losing tracking or known-position data,
+or moving the last eligible contact outside the circle, restores its native
+color.
+
+This works in cockpit and chase, follows the rendered circle through zoom and
+HUD scale changes, and needs no binding. Disabling the setting restores the
+native appearance immediately. Weapon and aircraft changes also release the
+highlight. Only the bomb impact circle changes color; the separate CCRP
+release-timing circle keeps its existing feedback. The highlight indicates
+overlap with the visible circle, rather than guaranteeing blast damage.
+
 ### Missile Camera (Hold Fire)
 
 This setting starts off. Enable it under Combat to launch one missile with
@@ -320,7 +361,7 @@ movement, and Enable Target Focus controls target following independently.
 
 ## Saved settings reference
 
-The README provides the visible labels and behavior for all 32 menu settings.
+The README provides the visible labels and behavior for all 33 menu settings.
 This table gives their saved keys plus the hidden camera preference.
 
 | Saved section | Key | Default | Range or role |
@@ -332,9 +373,11 @@ This table gives their saved keys plus the hidden camera preference.
 | Other | AutoCenterSpeed | 5 | 0.1 to 20. |
 | Other | RememberCameraView | false | Opt in to persist cockpit/chase choice. |
 | Other | LastCameraView | Cockpit | Hidden Cockpit/Chase preference. |
-| Other | CameraAdjustments | false | Distance/framing parent. |
+| Other | CameraAdjustments | false | Main switch for distance, framing, height and resting pitch. |
 | Other | CameraDistance | 0.65 | 0.25 to 2. |
 | Other | PlaneVerticalOffset | -0.15 | -0.35 to 0.35 of screen height. |
+| Other | CameraHeight | 0 | -20 to 20 meters; positive raises the camera. |
+| Other | CameraPitch | 0 | -45 to 45 degrees; positive looks down. |
 | Other | TargetFocusEnabled | false | Target-focus parent. |
 | Other | TargetFocusHoldDelay | 0.3 | 0.3 to 2 seconds. |
 | Other | FixWeaponFoV | true | External weapon FOV correction. |
@@ -355,6 +398,7 @@ This table gives their saved keys plus the hidden camera preference.
 | Flight Controls | SmoothButtonYaw | false | Digital yaw smoothing parent. |
 | Flight Controls | YawRiseTime | 2 | 0.05 to 5 seconds. |
 | Flight Controls | YawReturnTime | 2 | 0.02 to 5 seconds. |
+| Combat | BombTargetHighlight | false | Red bomb circle for tracked enemies, marked or unmarked. |
 | Combat | MissileFollowCamera | false | Single press/held camera. |
 | Combat | TargetCycling | false | Single-target tap cycling. |
 | Chase HUD | TurretAim | true | Saved here, displayed under Combat. |

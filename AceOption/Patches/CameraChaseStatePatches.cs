@@ -65,6 +65,7 @@ internal static class CameraChaseStatePatches
             if (cam.followingUnit == null || cam.cameraPivot == null) return;
             ChasePlacement.Capture(cam);
             ChasePlacement.ApplyDistance(cam);
+            ChasePlacement.ApplyHeight(cam);
             AvoidTerrain(cam);
 
             bool input = CameraCommands.InputAllowed;
@@ -98,6 +99,7 @@ internal static class CameraChaseStatePatches
                 AvoidTerrain(cam);
             }
             ChasePlacement.ApplyFraming(cam);
+            ChasePlacement.ApplyPitch(cam);
             if (TargetFocus.Apply(cam, target, dt))
             {
                 if (target != null) TargetMark.FocusActivated();

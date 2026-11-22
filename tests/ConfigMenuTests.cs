@@ -48,7 +48,8 @@ internal static class ConfigMenuTests
         var row = new ConfigurationManager.ConfigSettingEntry(child);
         var manager = new ConfigurationManager.ConfigurationManager { AttemptEdit = true, NewValue = defaultValue };
         Check(!Label(parent).StartsWith(" "), parentKey + ": parent switch stays unindented");
-        Check(Label(child).StartsWith("    "), childKey + ": child label is indented");
+        Check(Label(child).TakeWhile(c => c == ' ').Count() == 4,
+            childKey + ": slider is indented one level beneath its parent");
 
         manager.Draw(row);
         Check(!manager.EnabledDuringDraw, childKey + ": disabled parent grays the row");
@@ -92,6 +93,8 @@ internal static class ConfigMenuTests
                 { SaveOnConfigSet = false };
             CheckDependency(config, "Other", "AlwaysFreeLook", "FreeLookSensitivity", 1f, 1.5f);
             CheckDependency(config, "Other", "CameraAdjustments", "CameraDistance", .65f, 1.2f);
+            CheckDependency(config, "Other", "CameraAdjustments", "CameraHeight", 0f, 5f);
+            CheckDependency(config, "Other", "CameraAdjustments", "CameraPitch", 0f, 12f);
             CheckDependency(config, "Other", "TargetFocusEnabled", "TargetFocusHoldDelay", .3f, 1f);
             CheckDependency(config, "Chase HUD", "FlightHud", "Map", true, false);
             CheckDependency(config, "Flight Controls", "SmoothButtonYaw", "YawRiseTime", 2f, 1f);
